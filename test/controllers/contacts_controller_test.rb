@@ -93,6 +93,28 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_includes contacts(:two).reload.tags, "priority"
   end
 
+  test "bulk_update with a blank tag is a no-op and says so" do
+    original_tags = contacts(:one).tags
+
+    post bulk_update_contacts_path, params: {
+      contact_ids: [ contacts(:one).id ],
+      operation: "tag",
+      tag: "   "
+    }
+
+    assert_redirected_to contacts_path
+    assert_equal "Enter a tag name to add or remove it.", flash[:alert]
+    assert_equal original_tags, contacts(:one).reload.tags
+  end
+
+  test "bulk_update with no contacts selected is a no-op and says so" do
+    post bulk_update_contacts_path, params: { operation: "tag", tag: "priority" }
+
+    assert_redirected_to contacts_path
+    assert_equal "Select at least one contact first.", flash[:alert]
+    assert Contact.none? { |c| c.tags.include?("priority") }
+  end
+
   test "bulk_destroy deletes selected contacts" do
     assert_difference "Contact.count", -2 do
       post bulk_destroy_contacts_path, params: { contact_ids: [ contacts(:one).id, contacts(:two).id ] }

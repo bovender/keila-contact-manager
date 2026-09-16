@@ -79,17 +79,24 @@ class ContactsController < ApplicationController
   end
 
   def bulk_update
-    contacts = target_contacts
     tag = params[:tag].to_s.strip
-    count = contacts.count
+    if tag.blank?
+      redirect_to contacts_path(q: params[:q], tag: params[:current_tag]), alert: "Enter a tag name to add or remove it."
+      return
+    end
 
-    if tag.present?
-      case params[:operation]
-      when "tag"
-        contacts.find_each { |c| c.update!(tags: (c.tags + [ tag ]).uniq) }
-      when "untag"
-        contacts.find_each { |c| c.update!(tags: c.tags - [ tag ]) }
-      end
+    contacts = target_contacts
+    count = contacts.count
+    if count.zero?
+      redirect_to contacts_path(q: params[:q], tag: params[:current_tag]), alert: "Select at least one contact first."
+      return
+    end
+
+    case params[:operation]
+    when "tag"
+      contacts.find_each { |c| c.update!(tags: (c.tags + [ tag ]).uniq) }
+    when "untag"
+      contacts.find_each { |c| c.update!(tags: c.tags - [ tag ]) }
     end
 
     redirect_to contacts_path(q: params[:q], tag: params[:current_tag]), notice: "Updated #{count} contact(s)."
