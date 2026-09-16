@@ -37,9 +37,11 @@
     define in Keila and use there for segmenting campaigns.
   </p>
 
-  <%= form_with url: bulk_update_contacts_path, method: :post, id: "bulk-form" do %>
+  <%= form_with url: bulk_update_contacts_path, method: :post, id: "bulk-form",
+        data: { controller: "bulk-select", "bulk-select-total-value": @total_count } do %>
     <%= hidden_field_tag :q, @q %>
     <%= hidden_field_tag :current_tag, @tag %>
+    <%= hidden_field_tag :select_all_matching, "0", data: { "bulk-select-target": "selectAllMatchingField" } %>
 
     <div class="flex items-center gap-2 mb-3 text-sm">
       <span class="text-gray-500">With selected:</span>
@@ -50,14 +52,25 @@
       <%= submit_tag "Add tag", name: "operation", value: "tag", class: "rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 cursor-pointer" %>
       <%= submit_tag "Remove tag", name: "operation", value: "untag", class: "rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 cursor-pointer" %>
       <button type="submit" formaction="<%= bulk_destroy_contacts_path %>" data-turbo-confirm="Delete all selected contacts?"
+              data-bulk-select-target="deleteButton"
               class="rounded-md px-3 py-1.5 border border-red-300 text-red-600 hover:bg-red-50 cursor-pointer">Delete selected</button>
+    </div>
+
+    <div data-bulk-select-target="banner" hidden class="mb-3 text-sm bg-blue-50 text-blue-800 px-3 py-2 rounded-md">
+      All <%= @contacts.size %> contacts on this page are selected.
+      <button type="button" data-action="bulk-select#selectAllMatching" class="underline font-medium cursor-pointer">
+        Select all <%= @total_count %> matching this filter
+      </button>
     </div>
 
     <div class="overflow-x-auto border border-gray-200 rounded-lg">
       <table class="min-w-full divide-y divide-gray-200 text-sm">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-3 py-2 w-8"></th>
+            <th class="px-3 py-2 w-8">
+              <%= check_box_tag "select_all", "1", false,
+                    data: { "bulk-select-target": "selectAllCheckbox", action: "bulk-select#toggleAll" } %>
+            </th>
             <th class="px-3 py-2 text-left font-semibold text-gray-700">Email</th>
             <th class="px-3 py-2 text-left font-semibold text-gray-700">First name</th>
             <th class="px-3 py-2 text-left font-semibold text-gray-700">Last name</th>
@@ -71,7 +84,8 @@
                 data-controller="row-click" data-action="click->row-click#visit"
                 data-row-click-url-value="<%= contact_path(contact) %>">
               <td class="px-3 py-2">
-                <%= check_box_tag "contact_ids[]", contact.id, false %>
+                <%= check_box_tag "contact_ids[]", contact.id, false,
+                      data: { "bulk-select-target": "checkbox", action: "change->bulk-select#checkboxChanged" } %>
               </td>
               <td class="px-3 py-2 text-gray-900"><%= contact.email %></td>
               <td class="px-3 py-2 text-gray-700"><%= contact.first_name %></td>

@@ -98,4 +98,24 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
       post bulk_destroy_contacts_path, params: { contact_ids: [ contacts(:one).id, contacts(:two).id ] }
     end
   end
+
+  test "bulk_update with select_all_matching tags every contact matching the filter, not just contact_ids" do
+    post bulk_update_contacts_path, params: {
+      select_all_matching: "1",
+      current_tag: "newsletter",
+      contact_ids: [ contacts(:one).id ],
+      operation: "tag",
+      tag: "priority"
+    }
+
+    assert_redirected_to contacts_path(tag: "newsletter")
+    assert_includes contacts(:one).reload.tags, "priority"
+    assert_includes contacts(:two).reload.tags, "priority"
+  end
+
+  test "bulk_destroy with select_all_matching deletes every contact matching the filter" do
+    assert_difference "Contact.count", -2 do
+      post bulk_destroy_contacts_path, params: { select_all_matching: "1", current_tag: "newsletter" }
+    end
+  end
 end

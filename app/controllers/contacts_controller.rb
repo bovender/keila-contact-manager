@@ -79,8 +79,9 @@ class ContactsController < ApplicationController
   end
 
   def bulk_update
-    contacts = Contact.where(id: params[:contact_ids])
+    contacts = target_contacts
     tag = params[:tag].to_s.strip
+    count = contacts.count
 
     if tag.present?
       case params[:operation]
@@ -91,15 +92,25 @@ class ContactsController < ApplicationController
       end
     end
 
-    redirect_to contacts_path(q: params[:q], tag: params[:current_tag]), notice: "Updated #{contacts.size} contact(s)."
+    redirect_to contacts_path(q: params[:q], tag: params[:current_tag]), notice: "Updated #{count} contact(s)."
   end
 
   def bulk_destroy
-    count = Contact.where(id: params[:contact_ids]).destroy_all.size
+    count = target_contacts.destroy_all.size
     redirect_to contacts_path(q: params[:q], tag: params[:current_tag]), notice: "Deleted #{count} contact(s)."
   end
 
   private
+
+  # All contacts currently matching the index filter (when the "select all
+  # N matching this filter" banner was used) or just the checked ones.
+  def target_contacts
+    if ActiveModel::Type::Boolean.new.cast(params[:select_all_matching])
+      Contact.search(params[:q]).tagged_with(params[:current_tag])
+    else
+      Contact.where(id: params[:contact_ids])
+    end
+  end
 
   def set_contact
     @contact = Contact.find(params[:id])
