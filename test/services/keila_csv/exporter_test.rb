@@ -10,7 +10,9 @@ module KeilaCsv
       row = rows.first
       assert_equal "alice@example.com", row["Email"]
       assert_equal "vip;newsletter", row["Tags"]
-      assert_equal({ "Company" => "Acme" }, JSON.parse(row["Data"]))
+      data = JSON.parse(row["Data"])
+      assert_equal "Acme", data["Company"]
+      assert_equal contacts(:one).uuid, data[Contact::RESERVED_DATA_KEY]
     end
 
     test "round-trips through the importer" do

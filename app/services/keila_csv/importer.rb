@@ -5,11 +5,16 @@ module KeilaCsv
   # Imports a Keila contact export (or a flat CSV with individual custom
   # field columns instead of a JSON "Data" column) into the local database.
   #
-  # Contacts are upserted by email. Custom field values are merged into the
-  # existing data hash rather than replacing it outright, so a re-import
-  # from Keila doesn't wipe out fields that only exist locally. Any
-  # previously-unseen custom field is registered as a CustomFieldDefinition
-  # so it immediately shows up in the contact form and table.
+  # Contacts are matched, in order of preference, by this app's own
+  # `Contact::RESERVED_DATA_KEY` embedded in the Data column (see
+  # KeilaCsv::Exporter), by Keila's External_id, and finally by email. The
+  # first two survive an email change made directly in Keila; matching by
+  # email alone would instead create a duplicate contact. Custom field
+  # values are merged into the existing data hash rather than replacing it
+  # outright, so a re-import from Keila doesn't wipe out fields that only
+  # exist locally. Any previously-unseen custom field is registered as a
+  # CustomFieldDefinition so it immediately shows up in the contact form
+  # and table.
   #
   # Standard field headers (Email, First_name, ...) are matched
   # case-insensitively, but custom field headers keep their original casing
@@ -39,16 +44,19 @@ module KeilaCsv
           next
         end
 
-        contact = Contact.find_or_initialize_by(email: email.downcase)
+        external_id = value_for(row, header_lookup, "external_id") if header_lookup.key?("external_id")
+        new_data = extract_data(row, header_lookup, custom_headers, line_number, result)
+        uid = new_data.delete(Contact::RESERVED_DATA_KEY)
+
+        contact = find_matching_contact(uid: uid, external_id: external_id, email: email)
         was_new_record = contact.new_record?
 
+        contact.email = email.downcase
         contact.first_name = value_for(row, header_lookup, "first_name") if header_lookup.key?("first_name")
         contact.last_name  = value_for(row, header_lookup, "last_name")  if header_lookup.key?("last_name")
-        contact.external_id = value_for(row, header_lookup, "external_id") if header_lookup.key?("external_id")
+        contact.external_id = external_id if header_lookup.key?("external_id")
         contact.status = value_for(row, header_lookup, "status") if header_lookup.key?("status")
         contact.tag_list = value_for(row, header_lookup, "tags") if header_lookup.key?("tags")
-
-        new_data = extract_data(row, header_lookup, custom_headers, line_number, result)
         contact.data = contact.data.merge(new_data)
 
         if contact.save
@@ -68,6 +76,12 @@ module KeilaCsv
     end
 
     private
+
+    def find_matching_contact(uid:, external_id:, email:)
+      contact = Contact.find_by(uuid: uid) if uid.present?
+      contact ||= Contact.find_by(external_id: external_id) if external_id.present?
+      contact || Contact.find_or_initialize_by(email: email.downcase)
+    end
 
     def value_for(row, header_lookup, downcased_name)
       header = header_lookup[downcased_name]

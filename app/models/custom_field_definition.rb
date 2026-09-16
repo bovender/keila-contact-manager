@@ -1,5 +1,6 @@
 class CustomFieldDefinition < ApplicationRecord
-  validates :key, presence: true, uniqueness: true
+  validates :key, presence: true, uniqueness: true,
+                   exclusion: { in: [ Contact::RESERVED_DATA_KEY ], message: "is reserved for internal use" }
   validates :label, presence: true
 
   before_validation :default_label_from_key, on: :create
@@ -12,7 +13,7 @@ class CustomFieldDefinition < ApplicationRecord
   # casing so it round-trips with Keila's Data JSON blob unchanged.
   def self.register!(key)
     key = key.to_s.strip
-    return nil if key.blank?
+    return nil if key.blank? || key == Contact::RESERVED_DATA_KEY
 
     find_by(key: key) || create!(key: key)
   end

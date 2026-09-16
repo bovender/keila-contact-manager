@@ -1,7 +1,7 @@
 <% content_for :title, @contact.email %>
 
 <% registered_keys = @custom_field_definitions.map(&:key) %>
-<% extra_keys = @contact.data.keys - registered_keys %>
+<% extra_keys = @contact.data.keys - registered_keys - [ Contact::RESERVED_DATA_KEY ] %>
 
 <div class="w-full max-w-2xl">
   <%= render "shared/flash" %>

@@ -123,6 +123,26 @@ database migration to add one.
   rather than replacing it, so a periodic re-import from Keila won't wipe
   out fields you only maintain locally.
 
+### Surviving an email change
+
+Email addresses change. Keila's CSV export doesn't include Keila's own
+internal contact ID, and `External_id` is optional and only as reliable as
+whoever maintains it in Keila, so this app can't just match contacts by
+email between imports without risking duplicates when an address changes.
+
+Instead, every contact gets a permanent `uuid` on creation, which is
+smuggled through Keila as a reserved key (`Kcm_uid`) inside the `Data`
+JSON column on export. Re-importing a later Keila export matches contacts
+in this order: by that embedded uuid, then by `External_id` if present,
+and only then by email. The reserved key is stripped out on import and
+can never appear as a regular custom field — it never needs your
+attention.
+
+One consequence: the very first export after adopting this app "plants"
+the identifier in Keila. Contacts already living only in Keila won't be
+protected against an email change until you've exported and re-imported
+them into Keila at least once.
+
 ## Background
 
 This project started as a small Ruby CLI toolset

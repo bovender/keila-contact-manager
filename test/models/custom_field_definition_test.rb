@@ -21,6 +21,14 @@ class CustomFieldDefinitionTest < ActiveSupport::TestCase
     assert_nil CustomFieldDefinition.register!("  ")
   end
 
+  test "register! and validation both refuse the reserved uid key" do
+    assert_nil CustomFieldDefinition.register!(Contact::RESERVED_DATA_KEY)
+
+    definition = CustomFieldDefinition.new(key: Contact::RESERVED_DATA_KEY, label: "Nope")
+    assert_not definition.valid?
+    assert_includes definition.errors[:key], "is reserved for internal use"
+  end
+
   test "orders by position by default" do
     assert_equal CustomFieldDefinition.order(:position).to_a, CustomFieldDefinition.all.to_a
   end

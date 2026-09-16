@@ -59,6 +59,51 @@ module KeilaCsv
       assert_equal [ "Company" ], result.custom_fields
     end
 
+    test "re-matches an existing contact by its embedded uuid even if the email changed" do
+      contact = contacts(:one)
+      original_id = contact.id
+
+      result = import(<<~CSV)
+        Email,First_name,Data
+        alice.new@example.com,Alice,"{""#{Contact::RESERVED_DATA_KEY}"":""#{contact.uuid}"",""Company"":""New Co""}"
+      CSV
+
+      assert_equal 0, result.created
+      assert_equal 1, result.updated
+      assert_equal 1, Contact.where(email: [ "alice@example.com", "alice.new@example.com" ]).count
+
+      contact.reload
+      assert_equal original_id, contact.id
+      assert_equal "alice.new@example.com", contact.email
+      assert_equal "New Co", contact.custom_field("Company")
+    end
+
+    test "never stores the reserved uid key as contact data or a custom field" do
+      contact = contacts(:two)
+
+      import(<<~CSV)
+        Email,Data
+        #{contact.email},"{""#{Contact::RESERVED_DATA_KEY}"":""some-other-uuid""}"
+      CSV
+
+      contact.reload
+      assert_nil contact.data[Contact::RESERVED_DATA_KEY]
+      assert_not CustomFieldDefinition.exists?(key: Contact::RESERVED_DATA_KEY)
+    end
+
+    test "falls back to matching by external_id when no uuid is embedded" do
+      contact = contacts(:one)
+
+      result = import(<<~CSV)
+        Email,External_id
+        alice.new@example.com,#{contact.external_id}
+      CSV
+
+      assert_equal 0, result.created
+      assert_equal 1, result.updated
+      assert_equal "alice.new@example.com", contact.reload.email
+    end
+
     test "records an error for rows missing an email instead of raising" do
       result = import(<<~CSV)
         Email,First_name

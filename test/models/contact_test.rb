@@ -17,6 +17,27 @@ class ContactTest < ActiveSupport::TestCase
     assert_includes contact.errors[:email], "has already been taken"
   end
 
+  test "assigns a permanent uuid on creation and never changes it" do
+    contact = Contact.create!(email: "new@example.com")
+    uuid = contact.uuid
+    assert_match(/\A[0-9a-f-]{36}\z/, uuid)
+
+    contact.update!(first_name: "New")
+    assert_equal uuid, contact.reload.uuid
+  end
+
+  test "set_custom_field refuses to overwrite the reserved uid key" do
+    contact = contacts(:one)
+    contact.set_custom_field(Contact::RESERVED_DATA_KEY, "hijacked")
+    assert_nil contact.data[Contact::RESERVED_DATA_KEY]
+  end
+
+  test "requires a unique uuid" do
+    contact = Contact.new(email: "dup@example.com", uuid: contacts(:one).uuid)
+    assert_not contact.valid?
+    assert_includes contact.errors[:uuid], "has already been taken"
+  end
+
   test "tag_list reads and writes the tags array" do
     contact = contacts(:one)
     assert_equal "vip, newsletter", contact.tag_list

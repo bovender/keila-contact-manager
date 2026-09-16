@@ -1,9 +1,19 @@
 class Contact < ApplicationRecord
+  # Reserved Data key this app uses to smuggle its own permanent identifier
+  # (the `uuid` column below) through Keila's Data JSON blob. It round-trips
+  # on export/re-import so contacts can be re-matched even if their email
+  # changes, without depending on Keila's optional External_id. It's
+  # stripped from `data` on import (see KeilaCsv::Importer) so it never
+  # shows up as an editable custom field.
+  RESERVED_DATA_KEY = "Kcm_uid"
+
   before_validation { self.email = email.to_s.strip.downcase }
+  before_validation(on: :create) { self.uuid ||= SecureRandom.uuid }
 
   validates :email, presence: true,
                      uniqueness: { case_sensitive: false },
                      format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :uuid, presence: true, uniqueness: true
 
   scope :search, ->(term) {
     return all if term.blank?
@@ -57,6 +67,8 @@ class Contact < ApplicationRecord
 
   def set_custom_field(key, value)
     key = key.to_s
+    return if key == RESERVED_DATA_KEY
+
     new_data = data.dup
     if value.blank?
       new_data.delete(key)

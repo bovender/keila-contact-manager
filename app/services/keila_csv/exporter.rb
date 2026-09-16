@@ -5,6 +5,11 @@ module KeilaCsv
   # Exports contacts back into Keila's native, importable CSV format:
   # standard fields in their canonical capitalisation, tags joined with
   # semicolons, and custom fields packed into a single "Data" JSON column.
+  #
+  # Each contact's permanent internal uuid is smuggled into Data under
+  # Contact::RESERVED_DATA_KEY so that re-importing a later Keila export of
+  # the same contact re-matches it correctly even if the email changed in
+  # the meantime (see KeilaCsv::Importer).
   class Exporter
     def self.export(contacts = Contact.order(:email))
       new(contacts).export
@@ -26,7 +31,7 @@ module KeilaCsv
             contact.external_id,
             contact.status,
             Array(contact.tags).join(";"),
-            contact.data.presence&.to_json
+            contact.data.merge(Contact::RESERVED_DATA_KEY => contact.uuid).to_json
           ]
         end
       end
