@@ -1,0 +1,42 @@
+# A real Keila instance for exercising the KeilaApi:: sync code by hand
+# (or against a real server in a future integration-test job) --
+# separate from docker-compose.yml, which is this app's own
+# self-hosting compose file and has nothing to do with Keila itself.
+#
+# Usage:
+#   docker compose -f docker-compose.keila-dev.yml up -d
+#   # Keila is now at http://localhost:4445. The first boot logs a
+#   # generated root password ("Setting random root user password: ...")
+#   # -- `docker compose -f docker-compose.keila-dev.yml logs keila`.
+#   # Sign in at /auth/login, create a project, and generate an API key
+#   # under that project's Settings -> API to use in this app's own
+#   # Settings page.
+services:
+  keila-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: keila
+      POSTGRES_PASSWORD: keila
+      POSTGRES_DB: keila
+    volumes:
+      - keila_dev_db:/var/lib/postgresql/data
+
+  keila:
+    image: pentacent/keila:latest
+    depends_on:
+      - keila-db
+    ports:
+      - "4445:4000"
+    environment:
+      DB_URL: postgres://keila:keila@keila-db/keila
+      SECRET_KEY_BASE: ${KEILA_SECRET_KEY_BASE:?generate one with `openssl rand -hex 64`}
+      URL_HOST: localhost
+      URL_PORT: "4445"
+      URL_SCHEME: http
+      # No real mail server needed for exercising the contacts API.
+      MAILER_SMTP_HOST: localhost
+      MAILER_SMTP_AUTH_METHOD: none
+      MAILER_SMTP_FROM_EMAIL: noreply@example.com
+
+volumes:
+  keila_dev_db:

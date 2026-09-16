@@ -125,9 +125,43 @@ Environment variables:
 ### Settings
 
 The in-app Settings page (`/settings/edit`) stores your Keila instance URL
-and API key, for future live-sync features. The API key is encrypted at
-rest using Active Record Encryption. The app is fully usable via CSV
-import/export alone without ever filling this in.
+and API key (encrypted at rest using Active Record Encryption), used for
+live sync with Keila's REST API — see below. The app is fully usable via
+CSV import/export alone without ever filling this in.
+
+## Live sync with the Keila API
+
+Once Settings has a Keila instance URL and API key (generate one in Keila
+under a project's Settings → API — the key is scoped to that one
+project), the contacts page gets two extra buttons:
+
+- **Sync from Keila** pulls every contact from that Keila project and
+  upserts them locally.
+- **Push to Keila** pushes every local contact to that Keila project,
+  creating or updating as needed.
+
+Both use the same identity matching as CSV import (this app's own uuid →
+`External_id` → email), so an email changed on either side doesn't create
+a duplicate on the next sync.
+
+**Keila's contact API has no concept of tags at all** — only `Email`,
+`First_name`, `Last_name`, `External_id`, `Status` and `Data` are
+readable or writable through it. Sync never touches `Contact#tags` in
+either direction; tags remain exclusively a CSV thing.
+
+To exercise this against a real Keila instance rather than just the
+stubbed test suite, `docker-compose.keila-dev.yml` spins one up
+(separate from `docker-compose.yml`, this app's own self-hosting compose
+file):
+
+```sh
+docker compose -f docker-compose.keila-dev.yml up -d
+# Keila is now at http://localhost:4445; the generated root password is
+# in `docker compose -f docker-compose.keila-dev.yml logs keila`.
+# Sign in, create a project, generate an API key under its Settings ->
+# API, and paste http://localhost:4445 + that key into this app's own
+# Settings page.
+```
 
 ## Custom fields and the CSV format
 

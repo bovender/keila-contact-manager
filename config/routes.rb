@@ -2,7 +2,9 @@ Rails.application.routes.draw do
   resource :session
   resources :passwords, param: :token
 
-  resource :settings, only: [ :edit, :update ]
+  resource :settings, only: [ :edit, :update ] do
+    post :test_connection
+  end
 
   resources :custom_field_definitions, only: [ :index, :create, :update, :destroy ]
 
@@ -13,6 +15,8 @@ Rails.application.routes.draw do
       get :export
       post :bulk_update
       post :bulk_destroy
+      post :sync_from_keila
+      post :push_to_keila
     end
   end
 

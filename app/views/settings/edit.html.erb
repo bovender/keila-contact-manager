@@ -5,15 +5,17 @@
   <h1 class="font-bold text-3xl text-gray-900 mb-2">Settings</h1>
 
   <div class="py-2 px-3 bg-amber-50 text-amber-800 rounded-lg text-sm mb-4">
-    <strong>Alpha:</strong> live sync isn't built yet. Saving a URL and API key
-    here stores them (encrypted) for an upcoming sync feature, but nothing in
-    the app uses them yet &mdash; contacts still only come in via
-    <%= link_to "CSV import", import_contacts_path, class: "underline" %>.
+    <strong>Note:</strong> Keila's API has no concept of tags, so live sync
+    never reads or writes them &mdash; tags remain
+    <%= link_to "CSV", import_contacts_path, class: "underline" %>-only.
+    Everything else (email, name, external ID, status, custom fields) syncs
+    both ways.
   </div>
 
   <p class="text-gray-600 mb-6">
-    Connect this app to your self-hosted Keila instance to enable live sync.
-    The app works fine with CSV import/export alone if you leave this blank.
+    Connect this app to your self-hosted Keila instance's API key (create
+    one in Keila under a project's Settings &rarr; API). The app works fine
+    with CSV import/export alone if you leave this blank.
   </p>
 
   <%= form_with model: @setting, url: settings_path, method: :patch, class: "space-y-4 max-w-lg" do |form| %>
@@ -42,5 +44,10 @@
     </div>
 
     <%= form.submit "Save settings", class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer" %>
+  <% end %>
+
+  <% if @setting.configured_for_sync? %>
+    <%= button_to "Test connection", test_connection_settings_path, method: :post,
+          class: "mt-4 rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium cursor-pointer" %>
   <% end %>
 </div>

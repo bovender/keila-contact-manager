@@ -140,4 +140,44 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
       post bulk_destroy_contacts_path, params: { select_all_matching: "1", current_tag: "newsletter" }
     end
   end
+
+  test "sync_from_keila pulls contacts and reports a summary" do
+    Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
+    stub_request(:get, "https://keila.example.com/api/v1/contacts")
+      .with(query: { "paginate[page]" => "0", "paginate[page_size]" => "100" })
+      .to_return(status: 200, body: {
+        data: [ { "id" => "nc_1", "email" => "new@example.com", "data" => {} } ],
+        meta: { page_count: 1 }
+      }.to_json)
+
+    post sync_from_keila_contacts_path
+
+    assert_redirected_to contacts_path
+    assert_match(/Pulled 1 contact/, flash[:notice])
+    assert Contact.exists?(email: "new@example.com")
+  end
+
+  test "sync_from_keila without settings configured reports the failure" do
+    post sync_from_keila_contacts_path
+
+    assert_redirected_to contacts_path
+    assert_match(/Sync from Keila failed/, flash[:alert])
+  end
+
+  test "push_to_keila pushes local contacts and reports a summary" do
+    Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
+    Contact.delete_all
+    contact = Contact.create!(email: "push@example.com")
+
+    stub_request(:get, "https://keila.example.com/api/v1/contacts/#{contact.email}")
+      .with(query: { "id_type" => "email" })
+      .to_return(status: 404, body: { error: "not found" }.to_json)
+    stub_request(:post, "https://keila.example.com/api/v1/contacts")
+      .to_return(status: 200, body: { data: { "id" => "nc_new" } }.to_json)
+
+    post push_to_keila_contacts_path
+
+    assert_redirected_to contacts_path
+    assert_match(/Pushed 1 contact/, flash[:notice])
+  end
 end

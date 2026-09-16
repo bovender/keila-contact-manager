@@ -13,6 +13,13 @@ class SettingsController < ApplicationController
     end
   end
 
+  def test_connection
+    KeilaApi.client!.list_contacts(page: 0, page_size: 1)
+    redirect_to edit_settings_path, notice: "Connected to Keila successfully."
+  rescue KeilaApi::Error => e
+    redirect_to edit_settings_path, alert: "Could not connect to Keila: #{e.message}"
+  end
+
   private
 
   def setting_params

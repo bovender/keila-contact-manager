@@ -7,6 +7,7 @@ class ContactsController < ApplicationController
   def index
     @q = params[:q]
     @tag = params[:tag]
+    @keila_configured = Setting.instance.configured_for_sync?
 
     scope = Contact.search(@q).tagged_with(@tag).order(:email)
     @page = [ params[:page].to_i, 1 ].max
@@ -78,6 +79,20 @@ class ContactsController < ApplicationController
     send_data KeilaCsv::Exporter.export, filename: "contacts-#{Date.current.iso8601}.csv", type: "text/csv"
   end
 
+  def sync_from_keila
+    result = KeilaApi::Importer.import
+    redirect_to contacts_path, notice: sync_summary("Pulled", result)
+  rescue KeilaApi::Error => e
+    redirect_to contacts_path, alert: "Sync from Keila failed: #{e.message}"
+  end
+
+  def push_to_keila
+    result = KeilaApi::Exporter.export
+    redirect_to contacts_path, notice: sync_summary("Pushed", result)
+  rescue KeilaApi::Error => e
+    redirect_to contacts_path, alert: "Push to Keila failed: #{e.message}"
+  end
+
   def bulk_update
     tag = params[:tag].to_s.strip
     if tag.blank?
@@ -125,6 +140,14 @@ class ContactsController < ApplicationController
 
   def set_all_tags
     @all_tags = Contact.pluck(:tags).flatten.uniq.sort
+  end
+
+  def sync_summary(verb, result)
+    summary = "#{verb} #{result.success_count} contact(s) (#{result.created} new, #{result.updated} updated)."
+    if result.error_count.positive?
+      summary += " #{result.error_count} failed: #{result.errors.first(5).map { |e| e[:message] }.join('; ')}"
+    end
+    summary
   end
 
   def contact_params
