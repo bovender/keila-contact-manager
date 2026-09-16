@@ -4,14 +4,6 @@
   <%= render "shared/flash" %>
   <h1 class="font-bold text-3xl text-gray-900 mb-2">Settings</h1>
 
-  <div class="py-2 px-3 bg-amber-50 text-amber-800 rounded-lg text-sm mb-4">
-    <strong>Note:</strong> Keila's API has no concept of tags, so live sync
-    never reads or writes them &mdash; tags remain
-    <%= link_to "CSV", import_contacts_path, class: "underline" %>-only.
-    Everything else (email, name, external ID, status, custom fields) syncs
-    both ways.
-  </div>
-
   <p class="text-gray-600 mb-6">
     Connect this app to your self-hosted Keila instance's API key (create
     one in Keila under a project's Settings &rarr; API). The app works fine

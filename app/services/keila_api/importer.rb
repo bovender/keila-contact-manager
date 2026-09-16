@@ -4,10 +4,12 @@ module KeilaApi
   # the same: this app's own uuid (embedded in Data on a prior export),
   # then Keila's External_id, then email.
   #
-  # Deliberately never touches Contact#tags: Keila's contact API has no
-  # concept of tags at all, so a synced contact carries no tag
-  # information one way or the other. Touching tags here would silently
-  # wipe out whatever was set locally or via CSV import.
+  # Keila's contact API has no concept of tags of its own, but if a
+  # contact's Data happens to include a "Tags" key (Contact::TAGS_DATA_KEY
+  # -- typically because this app pushed it there previously), it's
+  # applied through Contact#tag_list=, which replaces the tag list
+  # outright rather than merging it. A contact with no such key in Data
+  # leaves local tags untouched.
   class Importer
     PAGE_SIZE = 100
 
@@ -47,6 +49,7 @@ module KeilaApi
 
       data = (attrs["data"] || {}).dup
       uid = data.delete(Contact::RESERVED_DATA_KEY)
+      tags_value = data.delete(Contact::TAGS_DATA_KEY)
       external_id = attrs["external_id"]
 
       contact = find_matching_contact(uid: uid, external_id: external_id, email: email)
@@ -57,6 +60,7 @@ module KeilaApi
       contact.last_name = attrs["last_name"]
       contact.external_id = external_id
       contact.status = attrs["status"]
+      contact.tag_list = tags_value if tags_value
       contact.data = contact.data.merge(data)
 
       if contact.save

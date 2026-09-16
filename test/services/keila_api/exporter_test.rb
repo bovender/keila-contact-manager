@@ -66,6 +66,26 @@ module KeilaApi
       assert_requested data_stub
     end
 
+    test "pushes tags along as part of data, like any other custom field" do
+      contact = contacts(:one)
+      assert_equal [ "vip", "newsletter" ], contact.tags
+
+      stub_request(:get, "https://keila.example.com/api/v1/contacts/#{contact.email}")
+        .with(query: { "id_type" => "email" })
+        .to_return(status: 404, body: { error: "not found" }.to_json)
+      stub_request(:get, "https://keila.example.com/api/v1/contacts/#{contact.external_id}")
+        .with(query: { "id_type" => "external_id" })
+        .to_return(status: 404, body: { error: "not found" }.to_json)
+
+      create_stub = stub_request(:post, "https://keila.example.com/api/v1/contacts")
+        .with { |req| JSON.parse(req.body)["data"]["data"]["Tags"] == [ "vip", "newsletter" ] }
+        .to_return(status: 200, body: { data: { "id" => "nc_new" } }.to_json)
+
+      Exporter.export(Contact.where(id: contact.id), client: client)
+
+      assert_requested create_stub
+    end
+
     test "falls back to matching by external_id when no contact is found by email" do
       contact = contacts(:one)
       assert contact.external_id.present?

@@ -48,7 +48,7 @@
     </p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <% custom_field_definitions.each do |cfd| %>
+      <% custom_field_definitions.reject(&:protected?).each do |cfd| %>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1"><%= cfd.label %></label>
           <%= text_field_tag "contact[custom_fields][#{cfd.key}]", contact.custom_field(cfd.key),

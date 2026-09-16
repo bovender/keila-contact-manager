@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_16_101121) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_16_144853) do
   create_table "contacts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.json "data", default: {}, null: false
@@ -19,7 +19,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_16_101121) do
     t.string "first_name"
     t.string "last_name"
     t.string "status"
-    t.json "tags", default: [], null: false
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["email"], name: "index_contacts_on_email", unique: true

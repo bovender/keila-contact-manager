@@ -158,7 +158,7 @@ class ContactsController < ApplicationController
   end
 
   def set_all_tags
-    @all_tags = Contact.pluck(:tags).flatten.uniq.sort
+    @all_tags = Contact.pluck(:data).flat_map { |data| data[Contact::TAGS_DATA_KEY] || [] }.uniq.sort
   end
 
   def sync_summary(verb, result)

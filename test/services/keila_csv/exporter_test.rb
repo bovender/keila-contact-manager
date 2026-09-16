@@ -9,9 +9,9 @@ module KeilaCsv
       assert_equal KeilaCsv::CANONICAL_FIELDS, rows.headers
       row = rows.first
       assert_equal "alice@example.com", row["Email"]
-      assert_equal "vip;newsletter", row["Tags"]
       data = JSON.parse(row["Data"])
       assert_equal "Acme", data["Company"]
+      assert_equal [ "vip", "newsletter" ], data["Tags"]
       assert_equal contacts(:one).uuid, data[Contact::RESERVED_DATA_KEY]
     end
 

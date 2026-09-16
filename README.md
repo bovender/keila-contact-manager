@@ -144,11 +144,6 @@ Both use the same identity matching as CSV import (this app's own uuid →
 `External_id` → email), so an email changed on either side doesn't create
 a duplicate on the next sync.
 
-**Keila's contact API has no concept of tags at all** — only `Email`,
-`First_name`, `Last_name`, `External_id`, `Status` and `Data` are
-readable or writable through it. Sync never touches `Contact#tags` in
-either direction; tags remain exclusively a CSV thing.
-
 To exercise this against a real Keila instance rather than just the
 stubbed test suite, `docker-compose.keila-dev.yml` spins one up
 (separate from `docker-compose.yml`, this app's own self-hosting compose
@@ -163,24 +158,40 @@ docker compose -f docker-compose.keila-dev.yml up -d
 # Settings page.
 ```
 
-## Custom fields and the CSV format
+## Custom fields, tags, and the CSV format
 
-Keila stores standard fields (`Email`, `First_name`, `Last_name`,
-`External_id`, `Status`, `Tags`) as plain CSV columns, semicolon-separated
-tags, and any custom fields as a JSON object in a `Data` column. This app
-mirrors that: custom fields live in a single JSON column per contact, and
-a small registry (`CustomFieldDefinition`) tracks which keys are known so
-they show up as table columns and form fields — without ever needing a
-database migration to add one.
+Keila's own standard contact fields are `Email`, `First name`, `Last
+name`, `External ID`, `Status`, and a `Data` JSON column for arbitrary
+custom fields — checked directly against Keila's source, since it turns
+out Keila has **no native concept of tags at all**, in its schema, its
+own CSV export, or its API. (An earlier version of this README assumed
+otherwise.)
+
+This app mirrors Keila's shape: custom fields live in a single JSON
+column per contact, and a small registry (`CustomFieldDefinition`) tracks
+which keys are known so they show up as table columns and form fields —
+without ever needing a database migration to add one.
+
+**Tags are just one such custom field** — stored at the reserved key
+`Contact::TAGS_DATA_KEY` ("Tags") inside `data`, so they travel through
+`Data` on CSV export and API sync exactly like any other custom field.
+What makes them different from an ordinary custom field is entirely at
+the app layer: a permanent, non-deletable registry entry, and dedicated
+UI (pills, tag filter, bulk tag/untag) since they're central to how
+contacts get organized here. Re-syncing replaces a contact's tag list
+outright with whatever the source currently says, rather than merging it
+— for tags specifically, "what the source says now" is more useful than
+"union of everything ever seen."
 
 - Importing a Keila export with unfamiliar `Data` keys (or unfamiliar flat
   columns) registers them automatically.
-- You can also add, rename, or remove fields from the registry directly
-  at `/custom_field_definitions`. Removing a field from the registry only
-  hides it from forms/table — existing contact data is kept.
-- Re-importing merges custom field values into what's already there,
-  rather than replacing it, so a periodic re-import from Keila won't wipe
-  out fields you only maintain locally.
+- You can also add or remove fields from the registry directly at
+  `/custom_field_definitions`. Removing a field from the registry only
+  hides it from forms/table — existing contact data is kept. Tags can't
+  be removed from the registry at all.
+- Re-importing merges other custom field values into what's already
+  there, rather than replacing it, so a periodic re-import from Keila
+  won't wipe out fields you only maintain locally.
 
 ### Surviving an email change
 

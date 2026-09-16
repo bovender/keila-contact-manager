@@ -16,3 +16,6 @@ if User.none?
     puts "Created initial user #{email}"
   end
 end
+
+# Tags has its own dedicated UI, so its registry entry must always exist.
+CustomFieldDefinition.ensure_tags_definition!

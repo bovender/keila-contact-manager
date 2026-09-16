@@ -37,4 +37,32 @@ class CustomFieldDefinitionTest < ActiveSupport::TestCase
     assert_equal 1, custom_field_definitions(:company).contacts_count
     assert_equal 0, custom_field_definitions(:birthday).contacts_count
   end
+
+  test "the Tags definition is protected and refuses to be destroyed" do
+    tags = custom_field_definitions(:tags)
+    assert tags.protected?
+
+    assert_no_difference "CustomFieldDefinition.count" do
+      assert_not tags.destroy
+    end
+    assert_includes tags.errors[:base], "Tags is a protected field and can't be removed"
+  end
+
+  test "ensure_tags_definition! is idempotent and always sorts first" do
+    assert_no_difference "CustomFieldDefinition.count" do
+      definition = CustomFieldDefinition.ensure_tags_definition!
+      assert_equal custom_field_definitions(:tags), definition
+      assert_equal(-1, definition.position)
+    end
+  end
+
+  test "ensure_tags_definition! creates the definition when missing" do
+    custom_field_definitions(:tags).delete # bypasses the before_destroy guard, unlike #destroy
+
+    assert_difference "CustomFieldDefinition.count", 1 do
+      definition = CustomFieldDefinition.ensure_tags_definition!
+      assert_equal "Tags", definition.key
+      assert_equal(-1, definition.position)
+    end
+  end
 end

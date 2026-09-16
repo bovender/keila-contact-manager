@@ -1,3 +1,8 @@
+tags:
+  key: Tags
+  label: Tags
+  position: -1
+
 company:
   key: Company
   label: Company

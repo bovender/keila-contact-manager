@@ -16,9 +16,7 @@ module KeilaApi
       Client.new(base_url: "https://keila.example.com", api_key: "secret")
     end
 
-    test "creates new contacts and registers custom fields, without touching tags" do
-      contacts(:one).update!(tags: [ "vip" ])
-
+    test "creates new contacts and registers custom fields; no Tags key in Data means no tags" do
       stub_contacts_page(page: 0, contacts: [
         { "id" => "nc_1", "email" => "carol@example.com", "first_name" => "Carol",
           "status" => "active", "data" => { "Company" => "Acme" } }
@@ -33,6 +31,19 @@ module KeilaApi
       assert_equal "Acme", contact.custom_field("Company")
       assert_equal [], contact.tags
       assert CustomFieldDefinition.exists?(key: "Company")
+    end
+
+    test "applies a Tags key in Data through tag_list=, replacing the tag list outright" do
+      contact = contacts(:one)
+      assert_equal [ "vip", "newsletter" ], contact.tags
+
+      stub_contacts_page(page: 0, contacts: [
+        { "id" => "nc_1", "email" => contact.email, "data" => { "Tags" => [ "just-this-one" ] } }
+      ])
+
+      import(client)
+
+      assert_equal [ "just-this-one" ], contact.reload.tags
     end
 
     test "matches an existing contact by its embedded uuid even if the email changed" do
@@ -53,7 +64,7 @@ module KeilaApi
       assert_equal original_id, contact.id
       assert_equal "alice.new@example.com", contact.email
       assert_equal "New Co", contact.custom_field("Company")
-      assert_equal [ "vip" ], contact.tags, "tags must be left untouched: Keila's API doesn't expose them"
+      assert_equal [ "vip" ], contact.tags, "no Tags key in the response's Data, so local tags are left alone"
     end
 
     test "falls back to matching by external_id when no uuid is embedded" do

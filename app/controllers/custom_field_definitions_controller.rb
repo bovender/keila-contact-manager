@@ -28,6 +28,11 @@ class CustomFieldDefinitionsController < ApplicationController
     @custom_field_definition = CustomFieldDefinition.find(params[:id])
     key = @custom_field_definition.key
 
+    if @custom_field_definition.protected?
+      redirect_to custom_field_definitions_path, alert: "#{@custom_field_definition.label} is a protected field and can't be removed."
+      return
+    end
+
     if ActiveModel::Type::Boolean.new.cast(params[:purge_data])
       purged = 0
       Contact.having_custom_field(key).find_each do |contact|

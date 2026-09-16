@@ -7,6 +7,14 @@ class Contact < ApplicationRecord
   # shows up as an editable custom field.
   RESERVED_DATA_KEY = "Kcm_uid"
 
+  # Keila itself has no concept of tags at all -- not in its schema, its own
+  # CSV export, or its API. Tags here are just a Data key like any other
+  # custom field (so they show up in Data when exported/pushed), but with
+  # a permanent, non-deletable CustomFieldDefinition and dedicated UI
+  # (pills, filters, bulk tag/untag) since they're central to how contacts
+  # get organized in this app.
+  TAGS_DATA_KEY = "Tags"
+
   before_validation { self.email = email.to_s.strip.downcase }
   before_validation(on: :create) { self.uuid ||= SecureRandom.uuid }
 
@@ -28,7 +36,7 @@ class Contact < ApplicationRecord
   scope :tagged_with, ->(tag) {
     return all if tag.blank?
 
-    where("EXISTS (SELECT 1 FROM json_each(contacts.tags) WHERE json_each.value = ?)", tag)
+    where("EXISTS (SELECT 1 FROM json_each(contacts.data, ?) WHERE json_each.value = ?)", json_path_for(TAGS_DATA_KEY), tag)
   }
 
   scope :with_custom_field, ->(key, value) {
@@ -53,12 +61,29 @@ class Contact < ApplicationRecord
     [ first_name, last_name ].reject(&:blank?).join(" ")
   end
 
-  def tag_list
-    Array(tags).join(", ")
+  def tags
+    data[TAGS_DATA_KEY] || []
   end
 
+  def tags=(value)
+    list = normalize_tags(value.is_a?(Array) ? value : Array(value))
+    new_data = data.dup
+    if list.empty?
+      new_data.delete(TAGS_DATA_KEY)
+    else
+      new_data[TAGS_DATA_KEY] = list
+    end
+    self.data = new_data
+  end
+
+  def tag_list
+    tags.join(", ")
+  end
+
+  # Accepts either a delimited string (from the contact form) or an array
+  # (from CSV/API imports, where a "Tags" value may already be a JSON array).
   def tag_list=(value)
-    self.tags = value.to_s.split(/[,;]/).map(&:strip).reject(&:blank?).uniq
+    self.tags = value.is_a?(Array) ? value : value.to_s.split(/[,;]/)
   end
 
   def custom_field(key)
@@ -67,7 +92,7 @@ class Contact < ApplicationRecord
 
   def set_custom_field(key, value)
     key = key.to_s
-    return if key == RESERVED_DATA_KEY
+    return if key == RESERVED_DATA_KEY || key == TAGS_DATA_KEY
 
     new_data = data.dup
     if value.blank?
@@ -76,5 +101,11 @@ class Contact < ApplicationRecord
       new_data[key] = value
     end
     self.data = new_data
+  end
+
+  private
+
+  def normalize_tags(list)
+    list.map { |t| t.to_s.strip }.reject(&:blank?).uniq
   end
 end

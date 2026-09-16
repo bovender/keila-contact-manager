@@ -46,6 +46,30 @@ class ContactTest < ActiveSupport::TestCase
     assert_equal [ "a", "b" ], contact.tags
   end
 
+  test "tags are stored inside data, not a dedicated column" do
+    contact = contacts(:one)
+    assert_equal [ "vip", "newsletter" ], contact.data["Tags"]
+  end
+
+  test "tag_list= also accepts an array, as arrives from CSV/API imports" do
+    contact = contacts(:two)
+    contact.tag_list = [ "a", " b ", "a", "" ]
+    assert_equal [ "a", "b" ], contact.tags
+  end
+
+  test "tags= clears the Tags data key entirely when set to an empty list" do
+    contact = contacts(:one)
+    contact.tags = []
+    assert_nil contact.data["Tags"]
+    assert_equal [], contact.tags
+  end
+
+  test "set_custom_field refuses to overwrite tags" do
+    contact = contacts(:two)
+    contact.set_custom_field(Contact::TAGS_DATA_KEY, "hijacked")
+    assert_equal [ "newsletter" ], contact.tags
+  end
+
   test "custom_field reads and set_custom_field writes into data, dropping blanks" do
     contact = contacts(:two)
     assert_nil contact.custom_field("Company")

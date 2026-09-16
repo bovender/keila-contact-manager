@@ -24,16 +24,20 @@
             used by <%= contacts_count %> contact<%= "s" unless contacts_count == 1 %>
           </span>
         </div>
-        <div class="flex items-center gap-2">
-          <%= button_to "Remove from registry", custom_field_definition_path(cfd), method: :delete,
-                form: { data: { turbo_confirm: "Remove '#{cfd.label}' from the registry? Existing contact data is kept." } },
-                class: "rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer text-sm" %>
-          <% if contacts_count > 0 %>
-            <%= button_to "Remove & delete data", custom_field_definition_path(cfd, purge_data: true), method: :delete,
-                  form: { data: { turbo_confirm: "This permanently deletes the '#{cfd.label}' value from #{contacts_count} contact#{'s' unless contacts_count == 1}. This cannot be undone. Continue?" } },
-                  class: "rounded-md px-3 py-1.5 border border-red-300 text-red-600 hover:bg-red-50 cursor-pointer text-sm" %>
-          <% end %>
-        </div>
+        <% if cfd.protected? %>
+          <p class="text-xs text-gray-400">Protected field &mdash; used throughout the app and can't be removed.</p>
+        <% else %>
+          <div class="flex items-center gap-2">
+            <%= button_to "Remove from registry", custom_field_definition_path(cfd), method: :delete,
+                  form: { data: { turbo_confirm: "Remove '#{cfd.label}' from the registry? Existing contact data is kept." } },
+                  class: "rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer text-sm" %>
+            <% if contacts_count > 0 %>
+              <%= button_to "Remove & delete data", custom_field_definition_path(cfd, purge_data: true), method: :delete,
+                    form: { data: { turbo_confirm: "This permanently deletes the '#{cfd.label}' value from #{contacts_count} contact#{'s' unless contacts_count == 1}. This cannot be undone. Continue?" } },
+                    class: "rounded-md px-3 py-1.5 border border-red-300 text-red-600 hover:bg-red-50 cursor-pointer text-sm" %>
+            <% end %>
+          </div>
+        <% end %>
       </div>
     <% end %>
     <% if @custom_field_definitions.empty? %>

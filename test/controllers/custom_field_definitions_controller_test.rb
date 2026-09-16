@@ -47,4 +47,24 @@ class CustomFieldDefinitionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_nil contact.reload.custom_field("Company")
   end
+
+  test "destroy refuses to remove the protected Tags definition" do
+    assert_no_difference "CustomFieldDefinition.count" do
+      delete custom_field_definition_path(custom_field_definitions(:tags))
+    end
+
+    assert_redirected_to custom_field_definitions_path
+    assert_match(/protected field/, flash[:alert])
+  end
+
+  test "destroy with purge_data still refuses to remove the protected Tags definition" do
+    contact = contacts(:one)
+    assert_equal [ "vip", "newsletter" ], contact.tags
+
+    assert_no_difference "CustomFieldDefinition.count" do
+      delete custom_field_definition_path(custom_field_definitions(:tags), purge_data: true)
+    end
+
+    assert_equal [ "vip", "newsletter" ], contact.reload.tags
+  end
 end

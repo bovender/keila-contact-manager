@@ -104,6 +104,30 @@ module KeilaCsv
       assert_equal "alice.new@example.com", contact.reload.email
     end
 
+    test "reads Tags from the Data JSON blob too, not just a flat column" do
+      result = import(<<~CSV)
+        Email,Data
+        carol@example.com,"{""Tags"":[""vip"",""newsletter""],""Company"":""Acme""}"
+      CSV
+
+      contact = Contact.find_by!(email: "carol@example.com")
+      assert_equal [ "vip", "newsletter" ], contact.tags
+      assert_equal "Acme", contact.custom_field("Company")
+      assert_not result.custom_fields.include?("Tags")
+    end
+
+    test "re-importing replaces the tag list outright rather than merging it" do
+      contact = contacts(:one)
+      assert_equal [ "vip", "newsletter" ], contact.tags
+
+      import(<<~CSV)
+        Email,Tags
+        #{contact.email},just-this-one
+      CSV
+
+      assert_equal [ "just-this-one" ], contact.reload.tags
+    end
+
     test "records an error for rows missing an email instead of raising" do
       result = import(<<~CSV)
         Email,First_name

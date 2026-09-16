@@ -8,7 +8,7 @@
     This pushes every contact here to the Keila instance configured in
     <%= link_to "Settings", edit_settings_path, class: "underline" %>,
     creating or updating as needed (matched by email, then External ID).
-    Tags are never sent &mdash; Keila's API doesn't expose them.
+    Tags are sent along as part of each contact's custom data.
   </p>
 
   <div class="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-6 text-sm">
@@ -32,7 +32,9 @@
     contacts into a completely different Keila project without warning.
   </p>
 
-  <%= button_to "Yes, push #{@local_count} contact(s) to Keila", push_to_keila_contacts_path,
-        class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer" %>
-  <%= link_to "Cancel", contacts_path, class: "ml-2 rounded-md px-3.5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
+  <div class="flex gap-2">
+    <%= button_to "Yes, push #{@local_count} contact(s) to Keila", push_to_keila_contacts_path,
+          class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer" %>
+    <%= link_to "Cancel", contacts_path, class: "rounded-md px-3.5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
+  </div>
 </div>

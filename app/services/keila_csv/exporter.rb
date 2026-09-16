@@ -3,8 +3,9 @@ require "json"
 
 module KeilaCsv
   # Exports contacts back into Keila's native, importable CSV format:
-  # standard fields in their canonical capitalisation, tags joined with
-  # semicolons, and custom fields packed into a single "Data" JSON column.
+  # standard fields in their canonical capitalisation, and custom fields
+  # (Tags included -- it's just a Data key, see Contact::TAGS_DATA_KEY)
+  # packed into a single "Data" JSON column.
   #
   # Each contact's permanent internal uuid is smuggled into Data under
   # Contact::RESERVED_DATA_KEY so that re-importing a later Keila export of
@@ -30,7 +31,6 @@ module KeilaCsv
             contact.last_name,
             contact.external_id,
             contact.status,
-            Array(contact.tags).join(";"),
             contact.data.merge(Contact::RESERVED_DATA_KEY => contact.uuid).to_json
           ]
         end

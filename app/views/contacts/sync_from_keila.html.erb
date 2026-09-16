@@ -8,8 +8,9 @@
     This pulls every contact from the Keila instance configured in
     <%= link_to "Settings", edit_settings_path, class: "underline" %> and
     upserts them here, matching by this app's own id, then Keila's
-    External ID, then email. Tags are never touched &mdash; Keila's API
-    doesn't expose them.
+    External ID, then email. Tags are only updated for a contact whose
+    Keila Data includes a "Tags" value &mdash; otherwise its tags here are
+    left as they are.
   </p>
 
   <div class="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-6 text-sm">
@@ -33,7 +34,9 @@
     contacts from a completely different Keila project without warning.
   </p>
 
-  <%= button_to "Yes, pull #{@keila_count} contact(s) from Keila", sync_from_keila_contacts_path,
-        class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer" %>
-  <%= link_to "Cancel", contacts_path, class: "ml-2 rounded-md px-3.5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
+  <div class="flex gap-2">
+    <%= button_to "Yes, pull #{@keila_count} contact(s) from Keila", sync_from_keila_contacts_path,
+          class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer" %>
+    <%= link_to "Cancel", contacts_path, class: "rounded-md px-3.5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
+  </div>
 </div>

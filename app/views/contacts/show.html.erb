@@ -40,7 +40,7 @@
         <% end %>
       </dd>
     </div>
-    <% @custom_field_definitions.each do |cfd| %>
+    <% @custom_field_definitions.reject(&:protected?).each do |cfd| %>
       <div class="px-4 py-3 grid grid-cols-3 gap-4">
         <dt class="text-sm font-medium text-gray-500"><%= cfd.label %></dt>
         <dd class="col-span-2 text-sm text-gray-900"><%= @contact.custom_field(cfd.key).presence || "—" %></dd>

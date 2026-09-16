@@ -1,8 +1,9 @@
 module KeilaApi
   # Pushes local contacts to Keila via its REST API, the live-sync
-  # equivalent of KeilaCsv::Exporter. Keila's contact API has no concept
-  # of tags, so tags are never sent -- only email, name, external ID,
-  # status and custom data.
+  # equivalent of KeilaCsv::Exporter. Tags travel along as part of `data`
+  # (Contact::TAGS_DATA_KEY) like any other custom field -- Keila itself
+  # has no dedicated concept of tags, but happily stores arbitrary Data
+  # keys, so this is enough for tags to round-trip through it.
   #
   # Since Keila's own contact ID isn't something this app tracks, each
   # push looks the contact up by email (falling back to external_id) --
