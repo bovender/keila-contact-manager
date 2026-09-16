@@ -30,7 +30,15 @@
     </div>
     <div class="px-4 py-3 grid grid-cols-3 gap-4">
       <dt class="text-sm font-medium text-gray-500">Tags</dt>
-      <dd class="col-span-2 text-sm text-gray-900"><%= @contact.tag_list.presence || "—" %></dd>
+      <dd class="col-span-2 text-sm text-gray-900">
+        <% if @contact.tags.any? %>
+          <% @contact.tags.each do |t| %>
+            <%= link_to t, contacts_path(tag: t), class: "inline-block px-2 py-0.5 mr-1 mb-1 rounded-full text-xs bg-gray-100 text-gray-700 hover:bg-gray-200" %>
+          <% end %>
+        <% else %>
+          —
+        <% end %>
+      </dd>
     </div>
     <% @custom_field_definitions.each do |cfd| %>
       <div class="px-4 py-3 grid grid-cols-3 gap-4">
