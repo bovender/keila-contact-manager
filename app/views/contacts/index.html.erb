@@ -43,7 +43,10 @@
 
     <div class="flex items-center gap-2 mb-3 text-sm">
       <span class="text-gray-500">With selected:</span>
-      <%= text_field_tag :tag, nil, placeholder: "tag name", class: "rounded-md border border-gray-300 px-2 py-1" %>
+      <%= text_field_tag :tag, nil, placeholder: "tag name", list: "existing-tags", class: "rounded-md border border-gray-300 px-2 py-1" %>
+      <datalist id="existing-tags">
+        <% @all_tags.each do |t| %><option value="<%= t %>"><% end %>
+      </datalist>
       <%= submit_tag "Add tag", name: "operation", value: "tag", class: "rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 cursor-pointer" %>
       <%= submit_tag "Remove tag", name: "operation", value: "untag", class: "rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 cursor-pointer" %>
       <button type="submit" formaction="<%= bulk_destroy_contacts_path %>" data-turbo-confirm="Delete all selected contacts?"

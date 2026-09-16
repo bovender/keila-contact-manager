@@ -2,6 +2,7 @@ class ContactsController < ApplicationController
   PER_PAGE = 50
 
   before_action :set_contact, only: %i[show edit update destroy]
+  before_action :set_all_tags, only: %i[index new create edit update]
 
   def index
     @q = params[:q]
@@ -12,7 +13,6 @@ class ContactsController < ApplicationController
     @total_count = scope.count
     @contacts = scope.offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
     @total_pages = (@total_count / PER_PAGE.to_f).ceil
-    @all_tags = Contact.pluck(:tags).flatten.uniq.sort
   end
 
   def show
@@ -103,6 +103,10 @@ class ContactsController < ApplicationController
 
   def set_contact
     @contact = Contact.find(params[:id])
+  end
+
+  def set_all_tags
+    @all_tags = Contact.pluck(:tags).flatten.uniq.sort
   end
 
   def contact_params

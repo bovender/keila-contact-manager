@@ -32,7 +32,11 @@
     </div>
     <div>
       <%= form.label :tag_list, "Tags", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= form.text_field :tag_list, value: contact.tag_list, placeholder: "vip, newsletter", class: "block w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-blue-600" %>
+      <%= form.text_field :tag_list, value: contact.tag_list, placeholder: "vip, newsletter", list: "existing-tags",
+            class: "block w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-blue-600" %>
+      <datalist id="existing-tags">
+        <% all_tags.each do |t| %><option value="<%= t %>"><% end %>
+      </datalist>
     </div>
   </div>
 
