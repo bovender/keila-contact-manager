@@ -141,7 +141,31 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "sync_from_keila pulls contacts and reports a summary" do
+  def stub_keila_count(count)
+    stub_request(:get, "https://keila.example.com/api/v1/contacts")
+      .with(query: { "paginate[page]" => "0", "paginate[page_size]" => "1" })
+      .to_return(status: 200, body: { data: [], meta: { count: count } }.to_json)
+  end
+
+  test "sync_from_keila shows a confirmation with counts from both sides" do
+    Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
+    stub_keila_count(5)
+
+    get sync_from_keila_contacts_path
+
+    assert_response :success
+    assert_match "5", response.body
+    assert_match Contact.count.to_s, response.body
+  end
+
+  test "sync_from_keila without settings configured redirects with an alert" do
+    get sync_from_keila_contacts_path
+
+    assert_redirected_to contacts_path
+    assert_match(/Could not reach Keila/, flash[:alert])
+  end
+
+  test "do_sync_from_keila pulls contacts and reports a summary" do
     Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
     stub_request(:get, "https://keila.example.com/api/v1/contacts")
       .with(query: { "paginate[page]" => "0", "paginate[page_size]" => "100" })
@@ -157,14 +181,17 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert Contact.exists?(email: "new@example.com")
   end
 
-  test "sync_from_keila without settings configured reports the failure" do
-    post sync_from_keila_contacts_path
+  test "push_to_keila shows a confirmation with counts from both sides" do
+    Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
+    stub_keila_count(3)
 
-    assert_redirected_to contacts_path
-    assert_match(/Sync from Keila failed/, flash[:alert])
+    get push_to_keila_contacts_path
+
+    assert_response :success
+    assert_match "3", response.body
   end
 
-  test "push_to_keila pushes local contacts and reports a summary" do
+  test "do_push_to_keila pushes local contacts, merging data via the dedicated endpoint" do
     Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
     Contact.delete_all
     contact = Contact.create!(email: "push@example.com")

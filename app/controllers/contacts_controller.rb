@@ -79,7 +79,19 @@ class ContactsController < ApplicationController
     send_data KeilaCsv::Exporter.export, filename: "contacts-#{Date.current.iso8601}.csv", type: "text/csv"
   end
 
+  # Confirmation screens: syncing the wrong Keila instance (a typo'd URL,
+  # an API key for a different project than you meant) would otherwise
+  # silently merge or push into a project you never intended to touch.
+  # Showing both sides' contact counts up front gives you a chance to
+  # notice before anything happens.
   def sync_from_keila
+    @keila_count = KeilaApi.client!.contacts_count
+    @local_count = Contact.count
+  rescue KeilaApi::Error => e
+    redirect_to contacts_path, alert: "Could not reach Keila: #{e.message}"
+  end
+
+  def do_sync_from_keila
     result = KeilaApi::Importer.import
     redirect_to contacts_path, notice: sync_summary("Pulled", result)
   rescue KeilaApi::Error => e
@@ -87,6 +99,13 @@ class ContactsController < ApplicationController
   end
 
   def push_to_keila
+    @keila_count = KeilaApi.client!.contacts_count
+    @local_count = Contact.count
+  rescue KeilaApi::Error => e
+    redirect_to contacts_path, alert: "Could not reach Keila: #{e.message}"
+  end
+
+  def do_push_to_keila
     result = KeilaApi::Exporter.export
     redirect_to contacts_path, notice: sync_summary("Pushed", result)
   rescue KeilaApi::Error => e

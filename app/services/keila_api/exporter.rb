@@ -5,10 +5,19 @@ module KeilaApi
   # status and custom data.
   #
   # Since Keila's own contact ID isn't something this app tracks, each
-  # push looks the contact up by email first: found means update, not
-  # found means create (embedding this app's uuid in Data so a later
-  # pull can match it back to the same local record even if the email
-  # changes in Keila afterwards).
+  # push looks the contact up by email (falling back to external_id) --
+  # found means update, not found means create -- embedding this app's
+  # uuid in Data so a later pull can match it back to the same local
+  # record even if the email changes in Keila afterwards.
+  #
+  # Updates send the `data` merge through Keila's dedicated PATCH
+  # .../data endpoint, never the general contact update endpoint: Keila's
+  # own source (KeilaWeb.ApiContactController#update) casts `data`
+  # straight through Ecto, which *replaces* the whole JSON object, not
+  # merges it. Sending our local `data` there would silently delete any
+  # field Keila has that this app doesn't know about -- e.g. one added
+  # directly in Keila, by another integration, or by a contact filling
+  # out a form.
   class Exporter
     def self.export(contacts = Contact.order(:email), client: KeilaApi.client!)
       new(client).export(contacts)
@@ -37,19 +46,26 @@ module KeilaApi
         external_id: contact.external_id,
         status: contact.status
       }.compact
-      attrs[:data] = contact.data.merge(Contact::RESERVED_DATA_KEY => contact.uuid)
+      data = contact.data.merge(Contact::RESERVED_DATA_KEY => contact.uuid)
 
-      existing = @client.find_contact(contact.email, id_type: "email")
+      existing = find_existing(contact)
 
       if existing
-        @client.update_contact(existing["data"]["id"], attrs)
+        id = existing["data"]["id"]
+        @client.update_contact(id, attrs)
+        @client.update_contact_data(id, data)
         result.updated += 1
       else
-        @client.create_contact(attrs)
+        @client.create_contact(attrs.merge(data: data))
         result.created += 1
       end
     rescue KeilaApi::ResponseError => e
       result.errors << { line: contact.email, message: e.message }
+    end
+
+    def find_existing(contact)
+      @client.find_contact(contact.email, id_type: "email") ||
+        (contact.external_id.present? && @client.find_contact(contact.external_id, id_type: "external_id"))
     end
   end
 end

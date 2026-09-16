@@ -7,8 +7,8 @@
     <h1 class="font-bold text-3xl text-gray-900">Contacts <span class="text-gray-400 font-normal text-xl">(<%= @total_count %>)</span></h1>
     <div class="flex gap-2">
       <% if @keila_configured %>
-        <%= button_to "Sync from Keila", sync_from_keila_contacts_path, class: "rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium cursor-pointer" %>
-        <%= button_to "Push to Keila", push_to_keila_contacts_path, class: "rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium cursor-pointer" %>
+        <%= link_to "Sync from Keila", sync_from_keila_contacts_path, class: "rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
+        <%= link_to "Push to Keila", push_to_keila_contacts_path, class: "rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
       <% end %>
       <%= link_to "Export CSV", export_contacts_path(q: @q, tag: @tag), class: "rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
       <%= link_to "Import CSV", import_contacts_path, class: "rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>

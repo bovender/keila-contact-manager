@@ -21,6 +21,13 @@ module KeilaApi
       get("/api/v1/contacts", "paginate[page]" => page, "paginate[page_size]" => page_size)
     end
 
+    # Total contact count for the project this API key is scoped to --
+    # cheap enough to show a "you're about to sync N contacts" prompt
+    # before actually pulling/pushing anything.
+    def contacts_count
+      list_contacts(page: 0, page_size: 1).dig("meta", "count")
+    end
+
     # id_type: nil (Keila's own id), "email", or "external_id"
     def find_contact(id, id_type: nil)
       get("/api/v1/contacts/#{ERB::Util.url_encode(id)}", (id_type && { "id_type" => id_type }) || {})

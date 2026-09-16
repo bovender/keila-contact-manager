@@ -15,8 +15,10 @@ Rails.application.routes.draw do
       get :export
       post :bulk_update
       post :bulk_destroy
-      post :sync_from_keila
-      post :push_to_keila
+      get :sync_from_keila
+      post :sync_from_keila, action: :do_sync_from_keila
+      get :push_to_keila
+      post :push_to_keila, action: :do_push_to_keila
     end
   end
 
