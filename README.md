@@ -78,8 +78,14 @@ bin/rails test
 The GitHub Actions workflow (`.github/workflows/ci.yml`) needs a
 `RAILS_MASTER_KEY` repository secret to decrypt credentials for the test
 job (the Active Record Encryption keys used for the settings' API key
-live there). Add it under repo Settings → Secrets and variables → Actions,
-using the contents of your `config/master.key`.
+live there). **Use the test-environment key, not your production one:**
+this repo ships `config/credentials/test.yml.enc`, decrypted by
+`config/credentials/test.key` (gitignored, generated locally by
+`bin/rails credentials:edit --environment test`). Add its contents as the
+`RAILS_MASTER_KEY` secret under repo Settings → Secrets and variables →
+Actions. Keeping test and production credentials on separate keys means a
+compromised CI run can never expose the key protecting real Keila API
+keys in production.
 
 ## Configuration
 

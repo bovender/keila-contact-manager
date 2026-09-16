@@ -36,3 +36,7 @@ node_modules/
 
 # Kamal deployment secrets.
 /.kamal/secrets
+
+# Ignore key files for decrypting credentials and more.
+/config/credentials/*.key
+
