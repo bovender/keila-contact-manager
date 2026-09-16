@@ -1,0 +1,85 @@
+<% content_for :title, "Contacts" %>
+
+<div class="w-full">
+  <%= render "shared/flash" %>
+
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="font-bold text-3xl text-gray-900">Contacts <span class="text-gray-400 font-normal text-xl">(<%= @total_count %>)</span></h1>
+    <div class="flex gap-2">
+      <%= link_to "Export CSV", export_contacts_path(q: @q, tag: @tag), class: "rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
+      <%= link_to "Import CSV", import_contacts_path, class: "rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
+      <%= link_to "New contact", new_contact_path, class: "rounded-md px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium" %>
+    </div>
+  </div>
+
+  <%= form_with url: contacts_path, method: :get, class: "flex gap-3 mb-4" do %>
+    <%= text_field_tag :q, @q, placeholder: "Search name, email, external id…",
+          class: "flex-1 block shadow-sm rounded-md border border-gray-300 px-3 py-2 focus:outline-blue-600" %>
+    <%= select_tag :tag, options_for_select([ [ "All tags", "" ] ] + @all_tags.map { |t| [ t, t ] }, @tag),
+          class: "rounded-md border border-gray-300 px-3 py-2" %>
+    <%= submit_tag "Filter", class: "rounded-md px-3.5 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium cursor-pointer" %>
+    <% if @q.present? || @tag.present? %>
+      <%= link_to "Clear", contacts_path, class: "rounded-md px-3.5 py-2 text-gray-500 hover:text-gray-700" %>
+    <% end %>
+  <% end %>
+
+  <%= form_with url: bulk_update_contacts_path, method: :post, id: "bulk-form" do %>
+    <%= hidden_field_tag :q, @q %>
+    <%= hidden_field_tag :current_tag, @tag %>
+
+    <div class="flex items-center gap-2 mb-3 text-sm">
+      <span class="text-gray-500">With selected:</span>
+      <%= text_field_tag :tag, nil, placeholder: "tag name", class: "rounded-md border border-gray-300 px-2 py-1" %>
+      <%= submit_tag "Add tag", name: "operation", value: "tag", class: "rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 cursor-pointer" %>
+      <%= submit_tag "Remove tag", name: "operation", value: "untag", class: "rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 cursor-pointer" %>
+      <button type="submit" formaction="<%= bulk_destroy_contacts_path %>" data-turbo-confirm="Delete all selected contacts?"
+              class="rounded-md px-3 py-1.5 border border-red-300 text-red-600 hover:bg-red-50 cursor-pointer">Delete selected</button>
+    </div>
+
+    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-3 py-2 w-8"></th>
+            <th class="px-3 py-2 text-left font-semibold text-gray-700">Email</th>
+            <th class="px-3 py-2 text-left font-semibold text-gray-700">Name</th>
+            <th class="px-3 py-2 text-left font-semibold text-gray-700">Status</th>
+            <th class="px-3 py-2 text-left font-semibold text-gray-700">Tags</th>
+            <% @custom_field_definitions.each do |cfd| %>
+              <th class="px-3 py-2 text-left font-semibold text-gray-700"><%= cfd.label %></th>
+            <% end %>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @contacts.each do |contact| %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-3 py-2">
+                <%= check_box_tag "contact_ids[]", contact.id, false %>
+              </td>
+              <td class="px-3 py-2 text-gray-900"><%= contact.email %></td>
+              <td class="px-3 py-2 text-gray-700"><%= contact.full_name %></td>
+              <td class="px-3 py-2 text-gray-700"><%= contact.status %></td>
+              <td class="px-3 py-2 text-gray-700"><%= contact.tag_list %></td>
+              <% @custom_field_definitions.each do |cfd| %>
+                <td class="px-3 py-2 text-gray-700"><%= contact.custom_field(cfd.key) %></td>
+              <% end %>
+              <td class="px-3 py-2 text-right">
+                <%= link_to "Edit", edit_contact_path(contact), class: "text-blue-600 hover:underline" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
+  <% if @total_pages > 1 %>
+    <div class="flex gap-2 mt-4 text-sm">
+      <% (1..@total_pages).each do |page_number| %>
+        <%= link_to page_number, contacts_path(q: @q, tag: @tag, page: page_number),
+              class: "px-3 py-1 rounded-md border #{page_number == @page ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}" %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

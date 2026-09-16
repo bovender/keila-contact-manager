@@ -1,0 +1,17 @@
+one:
+  email: alice@example.com
+  first_name: Alice
+  last_name: Anderson
+  external_id: ext-1
+  status: active
+  tags: ["vip", "newsletter"]
+  data: {"Company": "Acme"}
+
+two:
+  email: bob@example.com
+  first_name: Bob
+  last_name: Brown
+  external_id: ext-2
+  status: active
+  tags: ["newsletter"]
+  data: {}

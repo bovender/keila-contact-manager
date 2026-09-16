@@ -1,0 +1,22 @@
+<% content_for :title, "Import contacts" %>
+
+<div class="w-full max-w-2xl">
+  <%= render "shared/flash" %>
+  <h1 class="font-bold text-3xl text-gray-900 mb-4">Import contacts</h1>
+
+  <p class="text-gray-600 mb-6">
+    Upload a Keila contact export CSV (with a <code>Data</code> JSON column), or a
+    flat CSV with one column per custom field. Contacts are matched by email:
+    existing contacts are updated, new ones are created. Any new custom field
+    found in the file is added to the registry automatically.
+  </p>
+
+  <%= form_with url: import_contacts_path, method: :post, multipart: true, class: "space-y-4" do %>
+    <input type="file" name="file" accept=".csv,text/csv" required
+           class="block w-full text-sm text-gray-700 border border-gray-300 rounded-md p-2">
+    <div class="flex gap-2">
+      <%= submit_tag "Import", class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer" %>
+      <%= link_to "Cancel", contacts_path, class: "rounded-md px-3.5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
+    </div>
+  <% end %>
+</div>

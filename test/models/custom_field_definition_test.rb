@@ -1,0 +1,27 @@
+require "test_helper"
+
+class CustomFieldDefinitionTest < ActiveSupport::TestCase
+  test "register! finds an existing definition by key" do
+    assert_no_difference "CustomFieldDefinition.count" do
+      definition = CustomFieldDefinition.register!("Company")
+      assert_equal custom_field_definitions(:company), definition
+    end
+  end
+
+  test "register! creates a new definition with a humanized label and next position" do
+    assert_difference "CustomFieldDefinition.count", 1 do
+      definition = CustomFieldDefinition.register!("Favorite_color")
+      assert_equal "Favorite_color", definition.key
+      assert_equal "Favorite color", definition.label
+      assert_equal custom_field_definitions(:birthday).position + 1, definition.position
+    end
+  end
+
+  test "register! ignores blank keys" do
+    assert_nil CustomFieldDefinition.register!("  ")
+  end
+
+  test "orders by position by default" do
+    assert_equal CustomFieldDefinition.order(:position).to_a, CustomFieldDefinition.all.to_a
+  end
+end

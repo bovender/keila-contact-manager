@@ -1,0 +1,9 @@
+company:
+  key: Company
+  label: Company
+  position: 0
+
+birthday:
+  key: Birthday
+  label: Birthday
+  position: 1

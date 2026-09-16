@@ -1,0 +1,11 @@
+<% content_for :title, "Edit #{@contact.email}" %>
+
+<div class="w-full max-w-3xl">
+  <%= render "shared/flash" %>
+  <h1 class="font-bold text-3xl text-gray-900 mb-6">Edit contact</h1>
+  <%= render "form", contact: @contact, custom_field_definitions: @custom_field_definitions %>
+
+  <%= button_to "Delete contact", contact_path(@contact), method: :delete,
+        form: { data: { turbo_confirm: "Delete #{@contact.email}?" } },
+        class: "mt-6 text-red-600 hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
+</div>
