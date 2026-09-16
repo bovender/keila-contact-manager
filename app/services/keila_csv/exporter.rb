@@ -12,7 +12,7 @@ module KeilaCsv
   # the same contact re-matches it correctly even if the email changed in
   # the meantime (see KeilaCsv::Importer).
   class Exporter
-    def self.export(contacts = Contact.order(:email))
+    def self.export(project:, contacts: project.contacts.order(:email))
       new(contacts).export
     end
 

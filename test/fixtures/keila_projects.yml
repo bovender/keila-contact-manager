@@ -1,0 +1,7 @@
+alpha:
+  name: Alpha
+  keila_url: https://alpha.example.com
+
+beta:
+  name: Beta
+  keila_url: https://beta.example.com

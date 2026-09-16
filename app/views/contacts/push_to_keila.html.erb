@@ -6,7 +6,7 @@
 
   <p class="text-gray-600 mb-4">
     This pushes every contact here to the Keila instance configured in
-    <%= link_to "Settings", edit_settings_path, class: "underline" %>,
+    <%= link_to "the active project", edit_keila_project_path(current_project), class: "underline" %>,
     creating or updating as needed (matched by email, then External ID).
     Tags are sent along as part of each contact's custom data.
   </p>
@@ -14,7 +14,7 @@
   <div class="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-6 text-sm">
     <div class="px-4 py-3 grid grid-cols-2 gap-4">
       <span class="text-gray-500">Keila instance</span>
-      <span class="text-gray-900 font-mono"><%= Setting.instance.keila_url %></span>
+      <span class="text-gray-900 font-mono"><%= current_project.keila_url %></span>
     </div>
     <div class="px-4 py-3 grid grid-cols-2 gap-4">
       <span class="text-gray-500">Contacts here that will be pushed</span>

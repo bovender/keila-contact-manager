@@ -10,19 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_16_144853) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_16_193510) do
   create_table "contacts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.json "data", default: {}, null: false
     t.string "email", null: false
     t.string "external_id"
     t.string "first_name"
+    t.integer "keila_project_id", null: false
     t.string "last_name"
     t.string "status"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
-    t.index ["email"], name: "index_contacts_on_email", unique: true
+    t.index ["email", "keila_project_id"], name: "index_contacts_on_email_and_keila_project_id", unique: true
     t.index ["external_id"], name: "index_contacts_on_external_id"
+    t.index ["keila_project_id"], name: "index_contacts_on_keila_project_id"
     t.index ["uuid"], name: "index_contacts_on_uuid", unique: true
   end
 
@@ -35,6 +37,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_16_144853) do
     t.index ["key"], name: "index_custom_field_definitions_on_key", unique: true
   end
 
+  create_table "keila_projects", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "keila_api_key"
+    t.string "keila_url"
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_keila_projects_on_name", unique: true
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "ip_address"
@@ -44,20 +55,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_16_144853) do
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
-  create_table "settings", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "keila_api_key"
-    t.string "keila_url"
-    t.datetime "updated_at", null: false
-  end
-
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "current_keila_project_id"
     t.string "email_address", null: false
     t.string "password_digest", null: false
     t.datetime "updated_at", null: false
+    t.index ["current_keila_project_id"], name: "index_users_on_current_keila_project_id"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "contacts", "keila_projects"
   add_foreign_key "sessions", "users"
+  add_foreign_key "users", "keila_projects", column: "current_keila_project_id"
 end

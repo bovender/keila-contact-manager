@@ -20,6 +20,10 @@ This is an independent companion project, not affiliated with Keila.
 - Custom fields are schema-free: new ones show up automatically on import,
   or you can add them by hand, with no migration required
 - Bulk tag, untag, and delete
+- Works with any number of separate Keila projects, each with its own
+  contacts and its own Keila instance URL/API key — switch between them
+  without their contacts ever mixing, even when the same email address
+  exists in more than one
 - Single-user login (this is a personal/small-team tool, not a multi-tenant
   SaaS)
 
@@ -43,8 +47,8 @@ your `.env` file. Contact data (SQLite databases) persists in a named
 Docker volume across restarts.
 
 `RAILS_MASTER_KEY` decrypts `config/credentials.yml.enc`, which holds the
-key used to encrypt the Keila API key at rest (see
-[Settings](#settings)). If you're running from a fresh clone without
+key used to encrypt each project's Keila API key at rest (see
+[Projects](#projects)). If you're running from a fresh clone without
 `config/master.key`, generate credentials of your own first:
 
 ```sh
@@ -102,7 +106,7 @@ remote Chrome (e.g. a Selenium Grid elsewhere), point at it with
 
 The GitHub Actions workflow (`.github/workflows/ci.yml`) needs a
 `RAILS_MASTER_KEY` repository secret to decrypt credentials for the test
-job (the Active Record Encryption keys used for the settings' API key
+job (the Active Record Encryption keys used for each project's API key
 live there). **Use the test-environment key, not your production one:**
 this repo ships `config/credentials/test.yml.enc`, decrypted by
 `config/credentials/test.key` (gitignored, generated locally by
@@ -122,27 +126,39 @@ Environment variables:
 | `ADMIN_EMAIL` | Email for the initial user, created on first boot (default `admin@example.com`) |
 | `ADMIN_PASSWORD` | Password for the initial user (required to create it) |
 
-### Settings
+### Projects
 
-The in-app Settings page (`/settings/edit`) stores your Keila instance URL
-and API key (encrypted at rest using Active Record Encryption), used for
-live sync with Keila's REST API — see below. The app is fully usable via
-CSV import/export alone without ever filling this in.
+This app organizes contacts into **projects**, at `/keila_projects`. Each
+project is meant to mirror one Keila project: a Keila API key is itself
+always scoped to a single Keila project, so contacts here are kept fully
+partitioned by project too — the same email address can exist in two
+different projects as two entirely separate contacts, and CSV
+import/export, custom fields, search, and sync all operate only on
+whichever project is currently active. Switch the active project from the
+nav bar or the projects page; the app requires an active project before
+showing the contacts table.
+
+A project's Keila instance URL and API key (encrypted at rest using
+Active Record Encryption) are optional per project — used for live sync
+with Keila's REST API, see below. A project with no URL/key configured is
+still fully usable via CSV import/export alone.
 
 ## Live sync with the Keila API
 
-Once Settings has a Keila instance URL and API key (generate one in Keila
-under a project's Settings → API — the key is scoped to that one
-project), the contacts page gets two extra buttons:
+Once a project has a Keila instance URL and API key (generate one in
+Keila under that project's Settings → API), its contacts page gets two
+extra buttons:
 
-- **Sync from Keila** pulls every contact from that Keila project and
-  upserts them locally.
-- **Push to Keila** pushes every local contact to that Keila project,
-  creating or updating as needed.
+- **Sync from Keila** pulls every contact from that project's Keila
+  instance and upserts them locally, into the active project only.
+- **Push to Keila** pushes every local contact in the active project to
+  its Keila instance, creating or updating as needed.
 
 Both use the same identity matching as CSV import (this app's own uuid →
 `External_id` → email), so an email changed on either side doesn't create
-a duplicate on the next sync.
+a duplicate on the next sync — and matching is always scoped to the
+active project, so contacts never leak or merge across projects even when
+two Keila projects happen to share an email address.
 
 To exercise this against a real Keila instance rather than just the
 stubbed test suite, `docker-compose.keila-dev.yml` spins one up
@@ -154,8 +170,8 @@ docker compose -f docker-compose.keila-dev.yml up -d
 # Keila is now at http://localhost:4445; the generated root password is
 # in `docker compose -f docker-compose.keila-dev.yml logs keila`.
 # Sign in, create a project, generate an API key under its Settings ->
-# API, and paste http://localhost:4445 + that key into this app's own
-# Settings page.
+# API, and paste http://localhost:4445 + that key into the matching
+# project at this app's own /keila_projects page.
 ```
 
 ## Custom fields, tags, and the CSV format

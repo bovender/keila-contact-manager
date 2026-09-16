@@ -7,7 +7,7 @@ module KeilaCsv
       file = Tempfile.new([ "import", ".csv" ])
       file.write(csv_content)
       file.close
-      Importer.import(file.path)
+      Importer.import(file.path, project: keila_projects(:alpha))
     ensure
       file&.unlink
     end

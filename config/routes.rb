@@ -2,8 +2,11 @@ Rails.application.routes.draw do
   resource :session
   resources :passwords, param: :token
 
-  resource :settings, only: [ :edit, :update ] do
-    post :test_connection
+  resources :keila_projects do
+    member do
+      post :activate
+      post :test_connection
+    end
   end
 
   resources :custom_field_definitions, only: [ :index, :create, :update, :destroy ]

@@ -6,7 +6,7 @@
 
   <p class="text-gray-600 mb-4">
     This pulls every contact from the Keila instance configured in
-    <%= link_to "Settings", edit_settings_path, class: "underline" %> and
+    <%= link_to "the active project", edit_keila_project_path(current_project), class: "underline" %> and
     upserts them here, matching by this app's own id, then Keila's
     External ID, then email. Tags are only updated for a contact whose
     Keila Data includes a "Tags" value &mdash; otherwise its tags here are
@@ -16,7 +16,7 @@
   <div class="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-6 text-sm">
     <div class="px-4 py-3 grid grid-cols-2 gap-4">
       <span class="text-gray-500">Keila instance</span>
-      <span class="text-gray-900 font-mono"><%= Setting.instance.keila_url %></span>
+      <span class="text-gray-900 font-mono"><%= current_project.keila_url %></span>
     </div>
     <div class="px-4 py-3 grid grid-cols-2 gap-4">
       <span class="text-gray-500">Contacts reported by Keila</span>

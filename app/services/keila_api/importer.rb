@@ -1,8 +1,11 @@
 module KeilaApi
   # Pulls contacts from Keila via its REST API and upserts them locally,
-  # the live-sync equivalent of KeilaCsv::Importer. Matching priority is
-  # the same: this app's own uuid (embedded in Data on a prior export),
-  # then Keila's External_id, then email.
+  # scoped to a single KeilaProject (a Keila API key is itself scoped to
+  # one Keila project, and matching/creating contacts here is scoped the
+  # same way so the same email in two different projects never collides).
+  # This is the live-sync equivalent of KeilaCsv::Importer. Matching
+  # priority is the same: this app's own uuid (embedded in Data on a
+  # prior export), then Keila's External_id, then email.
   #
   # Keila's contact API has no concept of tags of its own, but if a
   # contact's Data happens to include a "Tags" key (Contact::TAGS_DATA_KEY
@@ -13,11 +16,12 @@ module KeilaApi
   class Importer
     PAGE_SIZE = 100
 
-    def self.import(client: KeilaApi.client!)
-      new(client).import
+    def self.import(project:, client: KeilaApi.client!(project))
+      new(project, client).import
     end
 
-    def initialize(client)
+    def initialize(project, client)
+      @project = project
       @client = client
     end
 
@@ -72,9 +76,9 @@ module KeilaApi
     end
 
     def find_matching_contact(uid:, external_id:, email:)
-      contact = Contact.find_by(uuid: uid) if uid.present?
-      contact ||= Contact.find_by(external_id: external_id) if external_id.present?
-      contact || Contact.find_or_initialize_by(email: email.downcase)
+      contact = @project.contacts.find_by(uuid: uid) if uid.present?
+      contact ||= @project.contacts.find_by(external_id: external_id) if external_id.present?
+      contact || @project.contacts.find_or_initialize_by(email: email.downcase)
     end
   end
 end

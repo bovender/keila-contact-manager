@@ -15,11 +15,16 @@ class Contact < ApplicationRecord
   # get organized in this app.
   TAGS_DATA_KEY = "Tags"
 
+  belongs_to :keila_project
+
   before_validation { self.email = email.to_s.strip.downcase }
   before_validation(on: :create) { self.uuid ||= SecureRandom.uuid }
 
+  # Scoped to keila_project, not global: the same email can legitimately
+  # be a different person in a different Keila project (Keila itself
+  # scopes its own uniqueness the same way, on (email, project_id)).
   validates :email, presence: true,
-                     uniqueness: { case_sensitive: false },
+                     uniqueness: { scope: :keila_project_id, case_sensitive: false },
                      format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :uuid, presence: true, uniqueness: true
 

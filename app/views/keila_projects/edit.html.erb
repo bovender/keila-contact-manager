@@ -1,0 +1,7 @@
+<% content_for :title, "Edit #{@keila_project.name}" %>
+
+<div class="w-full max-w-2xl">
+  <%= render "shared/flash" %>
+  <h1 class="font-bold text-3xl text-gray-900 mb-6">Edit project</h1>
+  <%= render "form", keila_project: @keila_project, url: keila_project_path(@keila_project) %>
+</div>

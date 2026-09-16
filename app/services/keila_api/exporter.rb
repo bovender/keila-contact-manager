@@ -20,7 +20,7 @@ module KeilaApi
   # directly in Keila, by another integration, or by a contact filling
   # out a form.
   class Exporter
-    def self.export(contacts = Contact.order(:email), client: KeilaApi.client!)
+    def self.export(project:, contacts: project.contacts.order(:email), client: KeilaApi.client!(project))
       new(client).export(contacts)
     end
 

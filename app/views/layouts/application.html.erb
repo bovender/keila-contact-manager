@@ -30,7 +30,8 @@
           <%= link_to "Keila Contact Manager", root_path, class: "font-bold text-lg text-gray-900" %>
           <%= link_to "Contacts", contacts_path, class: "text-gray-600 hover:text-gray-900" %>
           <%= link_to "Custom fields", custom_field_definitions_path, class: "text-gray-600 hover:text-gray-900" %>
-          <%= link_to "Settings", edit_settings_path, class: "text-gray-600 hover:text-gray-900" %>
+          <%= link_to (current_project ? "Project: #{current_project.name}" : "Projects"), keila_projects_path,
+                class: "text-gray-600 hover:text-gray-900" %>
           <%= button_to "Sign out", session_path, method: :delete, class: "ml-auto text-gray-600 hover:text-gray-900 bg-transparent border-0 p-0 cursor-pointer underline" %>
         </nav>
       </header>

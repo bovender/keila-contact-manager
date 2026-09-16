@@ -3,7 +3,7 @@ require "test_helper"
 module KeilaCsv
   class ExporterTest < ActiveSupport::TestCase
     test "exports contacts in Keila's canonical CSV format" do
-      csv = Exporter.export(Contact.where(id: contacts(:one).id))
+      csv = Exporter.export(project: keila_projects(:alpha), contacts: Contact.where(id: contacts(:one).id))
       rows = CSV.parse(csv, headers: true)
 
       assert_equal KeilaCsv::CANONICAL_FIELDS, rows.headers
@@ -17,7 +17,7 @@ module KeilaCsv
 
     test "round-trips through the importer" do
       original = contacts(:one)
-      csv = Exporter.export(Contact.where(id: original.id))
+      csv = Exporter.export(project: keila_projects(:alpha), contacts: Contact.where(id: original.id))
 
       original.destroy!
 
@@ -25,7 +25,7 @@ module KeilaCsv
       file = Tempfile.new([ "export", ".csv" ])
       file.write(csv)
       file.close
-      result = Importer.import(file.path)
+      result = Importer.import(file.path, project: keila_projects(:alpha))
 
       assert_equal 1, result.created
       reimported = Contact.find_by!(email: original.email)

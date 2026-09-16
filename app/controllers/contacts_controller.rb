@@ -1,15 +1,16 @@
 class ContactsController < ApplicationController
   PER_PAGE = 50
 
+  before_action :require_current_project
   before_action :set_contact, only: %i[show edit update destroy]
   before_action :set_all_tags, only: %i[index new create edit update]
 
   def index
     @q = params[:q]
     @tag = params[:tag]
-    @keila_configured = Setting.instance.configured_for_sync?
+    @keila_configured = current_project.configured_for_sync?
 
-    scope = Contact.search(@q).tagged_with(@tag).order(:email)
+    scope = current_project.contacts.search(@q).tagged_with(@tag).order(:email)
     @page = [ params[:page].to_i, 1 ].max
     @total_count = scope.count
     @contacts = scope.offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
@@ -21,12 +22,12 @@ class ContactsController < ApplicationController
   end
 
   def new
-    @contact = Contact.new
+    @contact = current_project.contacts.new
     @custom_field_definitions = CustomFieldDefinition.all
   end
 
   def create
-    @contact = Contact.new
+    @contact = current_project.contacts.new
     assign_contact_attributes
 
     if @contact.save
@@ -67,7 +68,7 @@ class ContactsController < ApplicationController
       return
     end
 
-    result = KeilaCsv::Importer.import(file.path)
+    result = KeilaCsv::Importer.import(file.path, project: current_project)
     notice = "Imported #{result.success_count} contact(s)."
     notice += " #{result.error_count} row(s) had errors: #{result.errors.first(5).map { |e| "line #{e[:line]}: #{e[:message]}" }.join('; ')}" if result.error_count.positive?
     redirect_to contacts_path, notice: notice
@@ -76,7 +77,7 @@ class ContactsController < ApplicationController
   end
 
   def export
-    send_data KeilaCsv::Exporter.export, filename: "contacts-#{Date.current.iso8601}.csv", type: "text/csv"
+    send_data KeilaCsv::Exporter.export(project: current_project), filename: "contacts-#{Date.current.iso8601}.csv", type: "text/csv"
   end
 
   # Confirmation screens: syncing the wrong Keila instance (a typo'd URL,
@@ -85,28 +86,28 @@ class ContactsController < ApplicationController
   # Showing both sides' contact counts up front gives you a chance to
   # notice before anything happens.
   def sync_from_keila
-    @keila_count = KeilaApi.client!.contacts_count
-    @local_count = Contact.count
+    @keila_count = KeilaApi.client!(current_project).contacts_count
+    @local_count = current_project.contacts.count
   rescue KeilaApi::Error => e
     redirect_to contacts_path, alert: "Could not reach Keila: #{e.message}"
   end
 
   def do_sync_from_keila
-    result = KeilaApi::Importer.import
+    result = KeilaApi::Importer.import(project: current_project)
     redirect_to contacts_path, notice: sync_summary("Pulled", result)
   rescue KeilaApi::Error => e
     redirect_to contacts_path, alert: "Sync from Keila failed: #{e.message}"
   end
 
   def push_to_keila
-    @keila_count = KeilaApi.client!.contacts_count
-    @local_count = Contact.count
+    @keila_count = KeilaApi.client!(current_project).contacts_count
+    @local_count = current_project.contacts.count
   rescue KeilaApi::Error => e
     redirect_to contacts_path, alert: "Could not reach Keila: #{e.message}"
   end
 
   def do_push_to_keila
-    result = KeilaApi::Exporter.export
+    result = KeilaApi::Exporter.export(project: current_project)
     redirect_to contacts_path, notice: sync_summary("Pushed", result)
   rescue KeilaApi::Error => e
     redirect_to contacts_path, alert: "Push to Keila failed: #{e.message}"
@@ -143,22 +144,29 @@ class ContactsController < ApplicationController
 
   private
 
-  # All contacts currently matching the index filter (when the "select all
-  # N matching this filter" banner was used) or just the checked ones.
+  def require_current_project
+    return if current_project
+
+    redirect_to keila_projects_path, alert: "Create or switch to a project first."
+  end
+
+  # All of the current project's contacts matching the index filter (when
+  # the "select all N matching this filter" banner was used) or just the
+  # checked ones.
   def target_contacts
     if ActiveModel::Type::Boolean.new.cast(params[:select_all_matching])
-      Contact.search(params[:q]).tagged_with(params[:current_tag])
+      current_project.contacts.search(params[:q]).tagged_with(params[:current_tag])
     else
-      Contact.where(id: params[:contact_ids])
+      current_project.contacts.where(id: params[:contact_ids])
     end
   end
 
   def set_contact
-    @contact = Contact.find(params[:id])
+    @contact = current_project.contacts.find(params[:id])
   end
 
   def set_all_tags
-    @all_tags = Contact.pluck(:data).flat_map { |data| data[Contact::TAGS_DATA_KEY] || [] }.uniq.sort
+    @all_tags = current_project.contacts.pluck(:data).flat_map { |data| data[Contact::TAGS_DATA_KEY] || [] }.uniq.sort
   end
 
   def sync_summary(verb, result)

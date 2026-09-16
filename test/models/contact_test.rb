@@ -2,23 +2,34 @@ require "test_helper"
 
 class ContactTest < ActiveSupport::TestCase
   test "normalizes email to lowercase and strips whitespace" do
-    contact = Contact.new(email: " Someone@Example.com ")
+    contact = Contact.new(email: " Someone@Example.com ", keila_project: keila_projects(:alpha))
     contact.validate
     assert_equal "someone@example.com", contact.email
   end
 
-  test "requires a valid, unique email" do
-    contact = Contact.new(email: "not-an-email")
+  test "requires a valid email, unique within its project" do
+    contact = Contact.new(email: "not-an-email", keila_project: keila_projects(:alpha))
     assert_not contact.valid?
     assert_includes contact.errors[:email], "is invalid"
 
-    contact = Contact.new(email: contacts(:one).email)
+    contact = Contact.new(email: contacts(:one).email, keila_project: keila_projects(:alpha))
     assert_not contact.valid?
     assert_includes contact.errors[:email], "has already been taken"
   end
 
+  test "the same email is allowed in a different project" do
+    contact = Contact.new(email: contacts(:one).email, keila_project: keila_projects(:beta))
+    assert contact.valid?
+  end
+
+  test "requires a project" do
+    contact = Contact.new(email: "new@example.com")
+    assert_not contact.valid?
+    assert_includes contact.errors[:keila_project], "must exist"
+  end
+
   test "assigns a permanent uuid on creation and never changes it" do
-    contact = Contact.create!(email: "new@example.com")
+    contact = Contact.create!(email: "new@example.com", keila_project: keila_projects(:alpha))
     uuid = contact.uuid
     assert_match(/\A[0-9a-f-]{36}\z/, uuid)
 
@@ -33,7 +44,7 @@ class ContactTest < ActiveSupport::TestCase
   end
 
   test "requires a unique uuid" do
-    contact = Contact.new(email: "dup@example.com", uuid: contacts(:one).uuid)
+    contact = Contact.new(email: "dup@example.com", uuid: contacts(:one).uuid, keila_project: keila_projects(:alpha))
     assert_not contact.valid?
     assert_includes contact.errors[:uuid], "has already been taken"
   end

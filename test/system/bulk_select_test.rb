@@ -6,8 +6,9 @@ class BulkSelectTest < ApplicationSystemTestCase
   end
 
   test "selecting all matching a filter reaches every contact, not just the current page" do
-    55.times { |i| Contact.create!(email: "bulk#{i}@example.com", tag_list: "vip") }
-    total_vip = Contact.tagged_with("vip").count
+    project = users(:one).current_keila_project
+    55.times { |i| Contact.create!(email: "bulk#{i}@example.com", tag_list: "vip", keila_project: project) }
+    total_vip = project.contacts.tagged_with("vip").count
 
     visit contacts_path(tag: "vip")
     assert_no_text "contacts on this page are selected"

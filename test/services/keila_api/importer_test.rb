@@ -3,7 +3,7 @@ require "test_helper"
 module KeilaApi
   class ImporterTest < ActiveSupport::TestCase
     def import(client)
-      Importer.import(client: client)
+      Importer.import(project: keila_projects(:alpha), client: client)
     end
 
     def stub_contacts_page(page:, contacts:, page_count: 1)
@@ -103,7 +103,7 @@ module KeilaApi
     end
 
     test "raises NotConfiguredError when settings are incomplete" do
-      assert_raises(NotConfiguredError) { Importer.import }
+      assert_raises(NotConfiguredError) { Importer.import(project: keila_projects(:beta)) }
     end
   end
 end

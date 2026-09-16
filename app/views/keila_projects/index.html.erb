@@ -1,0 +1,56 @@
+<% content_for :title, "Projects" %>
+
+<div class="w-full max-w-3xl">
+  <%= render "shared/flash" %>
+
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="font-bold text-3xl text-gray-900">Projects</h1>
+    <%= link_to "New project", new_keila_project_path, class: "rounded-md px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium" %>
+  </div>
+
+  <p class="text-gray-600 mb-6">
+    Each project is one Keila project's worth of contacts &mdash; a Keila
+    API key is itself scoped to a single project, so this app keeps
+    contacts from different projects fully separate, even when the same
+    email address appears in more than one. Everything (the contacts
+    table, custom fields, CSV import/export, sync) works within whichever
+    project is currently active.
+  </p>
+
+  <div class="border border-gray-200 rounded-lg divide-y divide-gray-100">
+    <% @keila_projects.each do |project| %>
+      <% active = project == current_project %>
+      <div class="p-4 <%= 'bg-blue-50' if active %>">
+        <div class="flex items-center justify-between gap-3 mb-2">
+          <div>
+            <span class="font-semibold text-gray-900"><%= project.name %></span>
+            <% if active %>
+              <span class="ml-2 text-xs font-medium text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">Active</span>
+            <% end %>
+            <p class="text-sm text-gray-500">
+              <%= project.keila_url.presence || "No Keila instance configured (CSV only)" %>
+              &middot; <%= pluralize(project.contacts.count, "contact") %>
+            </p>
+          </div>
+          <% unless active %>
+            <%= button_to "Switch to this project", activate_keila_project_path(project), method: :post,
+                  class: "rounded-md px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium cursor-pointer whitespace-nowrap" %>
+          <% end %>
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <%= link_to "Edit", edit_keila_project_path(project), class: "text-blue-600 hover:underline" %>
+          <% if project.configured_for_sync? %>
+            <%= button_to "Test connection", test_connection_keila_project_path(project), method: :post,
+                  class: "text-gray-600 hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
+          <% end %>
+          <%= button_to "Delete", keila_project_path(project), method: :delete,
+                form: { data: { turbo_confirm: "Delete project '#{project.name}'? This only works if it has no contacts left." } },
+                class: "text-red-600 hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
+        </div>
+      </div>
+    <% end %>
+    <% if @keila_projects.empty? %>
+      <p class="p-4 text-gray-500 text-sm">No projects yet &mdash; create one to start adding contacts.</p>
+    <% end %>
+  </div>
+</div>

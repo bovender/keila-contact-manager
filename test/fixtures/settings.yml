@@ -1,3 +1,0 @@
-# Intentionally empty: Setting is a singleton row created on demand via
-# Setting.instance, and keila_api_key is an encrypted attribute that fixtures
-# don't handle well without extra setup.

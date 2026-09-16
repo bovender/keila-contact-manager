@@ -3,7 +3,10 @@ require "json"
 
 module KeilaCsv
   # Imports a Keila contact export (or a flat CSV with individual custom
-  # field columns instead of a JSON "Data" column) into the local database.
+  # field columns instead of a JSON "Data" column) into the local database,
+  # scoped to a single KeilaProject -- imported/matched contacts always
+  # belong to that project, so the same email in a different project's
+  # data is never mistaken for the same contact.
   #
   # Contacts are matched, in order of preference, by this app's own
   # `Contact::RESERVED_DATA_KEY` embedded in the Data column (see
@@ -27,12 +30,13 @@ module KeilaCsv
   # case-insensitively, but custom field headers keep their original casing
   # so they round-trip with Keila's own Data JSON keys unchanged.
   class Importer
-    def self.import(io_or_path)
-      new(io_or_path).import
+    def self.import(io_or_path, project:)
+      new(io_or_path, project).import
     end
 
-    def initialize(io_or_path)
+    def initialize(io_or_path, project)
       @io_or_path = io_or_path
+      @project = project
     end
 
     def import
@@ -91,9 +95,9 @@ module KeilaCsv
     private
 
     def find_matching_contact(uid:, external_id:, email:)
-      contact = Contact.find_by(uuid: uid) if uid.present?
-      contact ||= Contact.find_by(external_id: external_id) if external_id.present?
-      contact || Contact.find_or_initialize_by(email: email.downcase)
+      contact = @project.contacts.find_by(uuid: uid) if uid.present?
+      contact ||= @project.contacts.find_by(external_id: external_id) if external_id.present?
+      contact || @project.contacts.find_or_initialize_by(email: email.downcase)
     end
 
     def value_for(row, header_lookup, downcased_name)

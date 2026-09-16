@@ -9,11 +9,38 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_path
   end
 
+  test "redirects to the projects page when no project is active" do
+    users(:one).update!(current_keila_project: nil)
+
+    get contacts_path
+
+    assert_redirected_to keila_projects_path
+    assert_equal "Create or switch to a project first.", flash[:alert]
+  end
+
   test "index lists contacts and supports search" do
     get contacts_path, params: { q: "alice" }
     assert_response :success
     assert_match contacts(:one).email, response.body
     assert_no_match contacts(:two).email, response.body
+  end
+
+  test "index only shows contacts belonging to the active project" do
+    other = Contact.create!(email: "other@example.com", keila_project: keila_projects(:beta))
+
+    get contacts_path
+
+    assert_response :success
+    assert_match contacts(:one).email, response.body
+    assert_no_match other.email, response.body
+  end
+
+  test "show 404s for a contact belonging to a different project" do
+    other = Contact.create!(email: "other@example.com", keila_project: keila_projects(:beta))
+
+    get contact_path(other)
+
+    assert_response :not_found
   end
 
   test "show displays the contact, including unregistered custom fields" do
@@ -30,7 +57,7 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_match "leftover", response.body
   end
 
-  test "create adds a contact with custom fields" do
+  test "create adds a contact with custom fields, assigned to the active project" do
     assert_difference "Contact.count", 1 do
       post contacts_path, params: {
         contact: {
@@ -46,6 +73,16 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     contact = Contact.find_by!(email: "new@example.com")
     assert_equal [ "vip" ], contact.tags
     assert_equal "Acme", contact.custom_field("Company")
+    assert_equal keila_projects(:alpha), contact.keila_project
+  end
+
+  test "create allows the same email already used in a different project" do
+    Contact.create!(email: "shared@example.com", keila_project: keila_projects(:beta))
+
+    assert_difference "Contact.count", 1 do
+      post contacts_path, params: { contact: { email: "shared@example.com" } }
+    end
+    assert_redirected_to contacts_path
   end
 
   test "update rejects an invalid email" do
@@ -63,7 +100,7 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to contacts_path
   end
 
-  test "do_import creates contacts from an uploaded CSV" do
+  test "do_import creates contacts from an uploaded CSV, assigned to the active project" do
     file = fixture_file_upload("contacts_import.csv", "text/csv")
 
     assert_difference "Contact.count", 1 do
@@ -71,14 +108,19 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to contacts_path
-    assert Contact.exists?(email: "imported@example.com")
+    contact = Contact.find_by!(email: "imported@example.com")
+    assert_equal keila_projects(:alpha), contact.keila_project
   end
 
-  test "export returns a CSV of contacts" do
+  test "export returns a CSV of only the active project's contacts" do
+    other = Contact.create!(email: "other@example.com", keila_project: keila_projects(:beta))
+
     get export_contacts_path
+
     assert_response :success
     assert_equal "text/csv", response.media_type
     assert_match contacts(:one).email, response.body
+    assert_no_match other.email, response.body
   end
 
   test "bulk_update tags selected contacts" do
@@ -121,6 +163,16 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "bulk actions never touch another project's contacts, even via select_all_matching" do
+    other = Contact.create!(email: "other@example.com", keila_project: keila_projects(:beta), tag_list: "newsletter")
+
+    post bulk_update_contacts_path, params: {
+      select_all_matching: "1", current_tag: "newsletter", operation: "tag", tag: "priority"
+    }
+
+    assert_not_includes other.reload.tags, "priority"
+  end
+
   test "bulk_update with select_all_matching tags every contact matching the filter, not just contact_ids" do
     post bulk_update_contacts_path, params: {
       select_all_matching: "1",
@@ -148,14 +200,14 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "sync_from_keila shows a confirmation with counts from both sides" do
-    Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
+    keila_projects(:alpha).update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
     stub_keila_count(5)
 
     get sync_from_keila_contacts_path
 
     assert_response :success
     assert_match "5", response.body
-    assert_match Contact.count.to_s, response.body
+    assert_match keila_projects(:alpha).contacts.count.to_s, response.body
   end
 
   test "sync_from_keila without settings configured redirects with an alert" do
@@ -165,8 +217,8 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Could not reach Keila/, flash[:alert])
   end
 
-  test "do_sync_from_keila pulls contacts and reports a summary" do
-    Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
+  test "do_sync_from_keila pulls contacts into the active project and reports a summary" do
+    keila_projects(:alpha).update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
     stub_request(:get, "https://keila.example.com/api/v1/contacts")
       .with(query: { "paginate[page]" => "0", "paginate[page_size]" => "100" })
       .to_return(status: 200, body: {
@@ -178,11 +230,12 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to contacts_path
     assert_match(/Pulled 1 contact/, flash[:notice])
-    assert Contact.exists?(email: "new@example.com")
+    contact = Contact.find_by!(email: "new@example.com")
+    assert_equal keila_projects(:alpha), contact.keila_project
   end
 
   test "push_to_keila shows a confirmation with counts from both sides" do
-    Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
+    keila_projects(:alpha).update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
     stub_keila_count(3)
 
     get push_to_keila_contacts_path
@@ -191,10 +244,10 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_match "3", response.body
   end
 
-  test "do_push_to_keila pushes local contacts, merging data via the dedicated endpoint" do
-    Setting.instance.update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
+  test "do_push_to_keila pushes only the active project's contacts, merging data via the dedicated endpoint" do
+    keila_projects(:alpha).update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
     Contact.delete_all
-    contact = Contact.create!(email: "push@example.com")
+    contact = Contact.create!(email: "push@example.com", keila_project: keila_projects(:alpha))
 
     stub_request(:get, "https://keila.example.com/api/v1/contacts/#{contact.email}")
       .with(query: { "id_type" => "email" })

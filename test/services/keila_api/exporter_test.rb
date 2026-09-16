@@ -21,7 +21,7 @@ module KeilaApi
                       JSON.parse(req.body)["data"]["data"][Contact::RESERVED_DATA_KEY] == contact.uuid }
         .to_return(status: 200, body: { data: { "id" => "nc_new" } }.to_json)
 
-      result = Exporter.export(Contact.where(id: contact.id), client: client)
+      result = Exporter.export(project: keila_projects(:alpha), contacts: Contact.where(id: contact.id), client: client)
 
       assert_requested create_stub
       assert_equal 1, result.created
@@ -39,7 +39,7 @@ module KeilaApi
       data_stub = stub_request(:patch, "https://keila.example.com/api/v1/contacts/nc_existing/data")
         .to_return(status: 200, body: { data: {} }.to_json)
 
-      result = Exporter.export(Contact.where(id: contact.id), client: client)
+      result = Exporter.export(project: keila_projects(:alpha), contacts: Contact.where(id: contact.id), client: client)
 
       assert_requested update_stub
       assert_requested data_stub
@@ -60,7 +60,7 @@ module KeilaApi
         .with { |req| JSON.parse(req.body)["data"][Contact::RESERVED_DATA_KEY] == contact.uuid }
         .to_return(status: 200, body: { data: {} }.to_json)
 
-      Exporter.export(Contact.where(id: contact.id), client: client)
+      Exporter.export(project: keila_projects(:alpha), contacts: Contact.where(id: contact.id), client: client)
 
       assert_requested update_stub
       assert_requested data_stub
@@ -81,7 +81,7 @@ module KeilaApi
         .with { |req| JSON.parse(req.body)["data"]["data"]["Tags"] == [ "vip", "newsletter" ] }
         .to_return(status: 200, body: { data: { "id" => "nc_new" } }.to_json)
 
-      Exporter.export(Contact.where(id: contact.id), client: client)
+      Exporter.export(project: keila_projects(:alpha), contacts: Contact.where(id: contact.id), client: client)
 
       assert_requested create_stub
     end
@@ -102,14 +102,14 @@ module KeilaApi
       stub_request(:patch, "https://keila.example.com/api/v1/contacts/nc_existing/data")
         .to_return(status: 200, body: { data: {} }.to_json)
 
-      result = Exporter.export(Contact.where(id: contact.id), client: client)
+      result = Exporter.export(project: keila_projects(:alpha), contacts: Contact.where(id: contact.id), client: client)
 
       assert_requested update_stub
       assert_equal 1, result.updated
     end
 
     test "omits blank fields instead of sending them as null" do
-      contact = Contact.create!(email: "blank-fields@example.com")
+      contact = Contact.create!(email: "blank-fields@example.com", keila_project: keila_projects(:alpha))
       assert_nil contact.first_name
       assert_nil contact.status
 
@@ -125,7 +125,7 @@ module KeilaApi
         }
         .to_return(status: 200, body: { data: { "id" => "nc_new" } }.to_json)
 
-      Exporter.export(Contact.where(id: contact.id), client: client)
+      Exporter.export(project: keila_projects(:alpha), contacts: Contact.where(id: contact.id), client: client)
 
       assert_requested create_stub
     end
@@ -137,7 +137,7 @@ module KeilaApi
         .with(query: { "id_type" => "email" })
         .to_return(status: 500, body: "boom")
 
-      result = Exporter.export(Contact.where(id: contact.id), client: client)
+      result = Exporter.export(project: keila_projects(:alpha), contacts: Contact.where(id: contact.id), client: client)
 
       assert_equal 1, result.error_count
       assert_equal 0, result.success_count

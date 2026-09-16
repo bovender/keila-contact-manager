@@ -11,15 +11,14 @@ module KeilaApi
     end
   end
 
-  # No Keila URL/API key configured (see Setting).
+  # No Keila URL/API key configured for this project (see KeilaProject).
   class NotConfiguredError < Error; end
 
-  def self.client!
-    setting = Setting.instance
-    unless setting.configured_for_sync?
-      raise NotConfiguredError, "Add a Keila instance URL and API key in Settings first."
+  def self.client!(project)
+    unless project&.configured_for_sync?
+      raise NotConfiguredError, "Add a Keila instance URL and API key for this project first."
     end
 
-    Client.new(base_url: setting.keila_url, api_key: setting.keila_api_key)
+    Client.new(base_url: project.keila_url, api_key: project.keila_api_key)
   end
 end
