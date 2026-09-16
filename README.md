@@ -73,6 +73,31 @@ Run the test suite with:
 bin/rails test
 ```
 
+### Running system tests
+
+System tests (`test/system`) drive the app in a real browser via Selenium,
+to exercise JavaScript-dependent behavior (Stimulus controllers, Turbo
+forms) that request/model tests can't see. This sandbox has no local
+Chrome, so they always run against a separately-hosted Chrome over
+Selenium's remote WebDriver protocol — start one with Docker:
+
+```sh
+docker run -d --rm --name selenium \
+  --add-host=host.docker.internal:host-gateway \
+  --shm-size=2g -p 4444:4444 \
+  selenium/standalone-chrome:latest
+
+bin/rails db:test:prepare
+bin/rails test:system
+```
+
+`--add-host` is what lets that container reach back to the Rails test
+server Capybara starts on your machine (see
+`test/application_system_test_case.rb`); CI's `system-test` job sets up
+the same thing via its `selenium` service. If you're driving a different
+remote Chrome (e.g. a Selenium Grid elsewhere), point at it with
+`SELENIUM_REMOTE_URL` and `CAPYBARA_APP_HOST`.
+
 ### Continuous integration
 
 The GitHub Actions workflow (`.github/workflows/ci.yml`) needs a

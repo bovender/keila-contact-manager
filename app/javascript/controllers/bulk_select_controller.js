@@ -8,6 +8,14 @@ export default class extends Controller {
   static targets = ["checkbox", "selectAllCheckbox", "selectAllMatchingField", "banner", "deleteButton"]
   static values = { total: Number }
 
+  // Controllers connect asynchronously once their JS module has loaded,
+  // which can trail a plain page visit by a perceptible amount (each
+  // controller is its own module fetch). This flag gives tests something
+  // concrete to wait on instead of racing ahead of it.
+  connect() {
+    this.element.dataset.bulkSelectReady = "true"
+  }
+
   toggleAll() {
     const checked = this.selectAllCheckboxTarget.checked
     this.checkboxTargets.forEach((checkbox) => { checkbox.checked = checked })

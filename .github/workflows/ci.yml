@@ -96,12 +96,21 @@ jobs:
   system-test:
     runs-on: ubuntu-latest
 
-    # services:
-    #  redis:
-    #    image: valkey/valkey:8
-    #    ports:
-    #      - 6379:6379
-    #    options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    # This job runs directly on the runner (not inside a container), so
+    # the selenium service is reachable at localhost:4444 from here, the
+    # normal way GitHub Actions service containers work. The reverse
+    # direction is the tricky part: Chrome, inside its own container, needs
+    # to reach back to the Rails test server that Capybara starts on this
+    # runner. --add-host maps host.docker.internal to the runner for
+    # exactly that -- see test/application_system_test_case.rb, which
+    # points Capybara at that hostname by default.
+    services:
+      selenium:
+        image: selenium/standalone-chrome:latest
+        ports:
+          - 4444:4444
+        options: --add-host=host.docker.internal:host-gateway --shm-size=2g
+
     steps:
       - name: Install packages
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips
@@ -118,7 +127,6 @@ jobs:
         env:
           RAILS_ENV: test
           RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
-          # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test:system
 
       - name: Keep screenshots from failed system tests
