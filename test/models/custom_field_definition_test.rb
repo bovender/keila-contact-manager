@@ -24,4 +24,9 @@ class CustomFieldDefinitionTest < ActiveSupport::TestCase
   test "orders by position by default" do
     assert_equal CustomFieldDefinition.order(:position).to_a, CustomFieldDefinition.all.to_a
   end
+
+  test "contacts_count reports how many contacts hold a value for this key" do
+    assert_equal 1, custom_field_definitions(:company).contacts_count
+    assert_equal 0, custom_field_definitions(:birthday).contacts_count
+  end
 end

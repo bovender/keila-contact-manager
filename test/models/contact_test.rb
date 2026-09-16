@@ -54,4 +54,10 @@ class ContactTest < ActiveSupport::TestCase
     assert_includes Contact.with_custom_field("Company", "Acme"), contacts(:one)
     assert_not_includes Contact.with_custom_field("Company", "Acme"), contacts(:two)
   end
+
+  test "having_custom_field scope matches contacts where the key is present regardless of value" do
+    assert_includes Contact.having_custom_field("Company"), contacts(:one)
+    assert_not_includes Contact.having_custom_field("Company"), contacts(:two)
+    assert_equal Contact.none.to_a, Contact.having_custom_field(nil).to_a
+  end
 end

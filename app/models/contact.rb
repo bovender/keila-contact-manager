@@ -27,6 +27,14 @@ class Contact < ApplicationRecord
     where("json_extract(contacts.data, ?) = ?", json_path_for(key), value.to_s)
   }
 
+  # Contacts whose data hash has this key present at all, regardless of
+  # value. Used to warn before permanently deleting a custom field's data.
+  scope :having_custom_field, ->(key) {
+    return none if key.blank?
+
+    where("json_type(contacts.data, ?) IS NOT NULL", json_path_for(key))
+  }
+
   def self.json_path_for(key)
     %($."#{key.to_s.gsub('"', '\\"')}")
   end

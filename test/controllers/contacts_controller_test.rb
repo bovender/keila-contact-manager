@@ -16,6 +16,20 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match contacts(:two).email, response.body
   end
 
+  test "show displays the contact, including unregistered custom fields" do
+    contact = contacts(:one)
+    contact.set_custom_field("Orphaned_field", "leftover")
+    contact.save!
+
+    get contact_path(contact)
+
+    assert_response :success
+    assert_match contact.email, response.body
+    assert_match "Acme", response.body
+    assert_match "Orphaned_field", response.body
+    assert_match "leftover", response.body
+  end
+
   test "create adds a contact with custom fields" do
     assert_difference "Contact.count", 1 do
       post contacts_path, params: {

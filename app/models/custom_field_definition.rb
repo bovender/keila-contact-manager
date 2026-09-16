@@ -17,6 +17,12 @@ class CustomFieldDefinition < ApplicationRecord
     find_by(key: key) || create!(key: key)
   end
 
+  # Number of contacts whose data currently holds a value for this key.
+  # Used to warn before permanently deleting the field's data.
+  def contacts_count
+    Contact.having_custom_field(key).count
+  end
+
   private
 
   def default_label_from_key

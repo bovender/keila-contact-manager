@@ -35,4 +35,16 @@ class CustomFieldDefinitionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal "Acme", contact.reload.custom_field("Company")
   end
+
+  test "destroy with purge_data also deletes the field's data from every contact" do
+    definition = custom_field_definitions(:company)
+    contact = contacts(:one)
+    assert_equal "Acme", contact.custom_field("Company")
+
+    assert_difference "CustomFieldDefinition.count", -1 do
+      delete custom_field_definition_path(definition, purge_data: true)
+    end
+
+    assert_nil contact.reload.custom_field("Company")
+  end
 end

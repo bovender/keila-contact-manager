@@ -1,10 +1,9 @@
 class ContactsController < ApplicationController
   PER_PAGE = 50
 
-  before_action :set_contact, only: %i[edit update destroy]
+  before_action :set_contact, only: %i[show edit update destroy]
 
   def index
-    @custom_field_definitions = CustomFieldDefinition.all
     @q = params[:q]
     @tag = params[:tag]
 
@@ -14,6 +13,10 @@ class ContactsController < ApplicationController
     @contacts = scope.offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
     @total_pages = (@total_count / PER_PAGE.to_f).ceil
     @all_tags = Contact.pluck(:tags).flatten.uniq.sort
+  end
+
+  def show
+    @custom_field_definitions = CustomFieldDefinition.all
   end
 
   def new
