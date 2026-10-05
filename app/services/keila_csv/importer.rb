@@ -88,7 +88,7 @@ module KeilaCsv
         end
       end
 
-      result.custom_fields.each { |key| CustomFieldDefinition.register!(key) }
+      result.custom_fields.each { |key| @project.custom_field_definitions.register!(key) }
       result
     end
 

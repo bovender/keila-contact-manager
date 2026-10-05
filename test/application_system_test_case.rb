@@ -33,6 +33,14 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # have. Give assertions more room to retry before giving up.
   Capybara.default_max_wait_time = 5
 
+  # The contacts page asks Keila whether a sync is due; an empty Keila
+  # project unless a test says otherwise.
+  setup do
+    stub_request(:get, "#{Rails.configuration.x.keila_url}/api/v1/contacts")
+      .with(query: hash_including({}))
+      .to_return(status: 200, body: { data: [], meta: { page_count: 0, count: 0 } }.to_json)
+  end
+
   # A real Selenium-driven browser has its own cookie jar, so the
   # integration-test sign_in_as trick (which only fakes a cookie inside
   # the Ruby process) doesn't authenticate it -- log in through the

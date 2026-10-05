@@ -7,6 +7,7 @@ services:
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY:?set RAILS_MASTER_KEY to the contents of config/master.key}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD for the initial login}
+      KEILA_URL: ${KEILA_URL:-}
     volumes:
       - storage:/rails/storage
     restart: unless-stopped

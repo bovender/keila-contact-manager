@@ -1,16 +1,18 @@
 require "test_helper"
 
 class CustomFieldDefinitionTest < ActiveSupport::TestCase
+  setup { @registry = keila_projects(:alpha).custom_field_definitions }
+
   test "register! finds an existing definition by key" do
     assert_no_difference "CustomFieldDefinition.count" do
-      definition = CustomFieldDefinition.register!("Company")
+      definition = @registry.register!("Company")
       assert_equal custom_field_definitions(:company), definition
     end
   end
 
   test "register! creates a new definition with a humanized label and next position" do
     assert_difference "CustomFieldDefinition.count", 1 do
-      definition = CustomFieldDefinition.register!("Favorite_color")
+      definition = @registry.register!("Favorite_color")
       assert_equal "Favorite_color", definition.key
       assert_equal "Favorite color", definition.label
       assert_equal custom_field_definitions(:birthday).position + 1, definition.position
@@ -18,22 +20,41 @@ class CustomFieldDefinitionTest < ActiveSupport::TestCase
   end
 
   test "register! ignores blank keys" do
-    assert_nil CustomFieldDefinition.register!("  ")
+    assert_nil @registry.register!("  ")
   end
 
   test "register! and validation both refuse the reserved uid key" do
-    assert_nil CustomFieldDefinition.register!(Contact::RESERVED_DATA_KEY)
+    assert_nil @registry.register!(Contact::RESERVED_DATA_KEY)
 
-    definition = CustomFieldDefinition.new(key: Contact::RESERVED_DATA_KEY, label: "Nope")
+    definition = @registry.new(key: Contact::RESERVED_DATA_KEY, label: "Nope")
     assert_not definition.valid?
     assert_includes definition.errors[:key], "is reserved for internal use"
+  end
+
+  test "keys are unique per project, not globally" do
+    beta = keila_projects(:beta).custom_field_definitions
+
+    assert_difference "CustomFieldDefinition.count", 1 do
+      definition = beta.register!("Company")
+      assert_equal keila_projects(:beta), definition.keila_project
+      assert_equal 0, definition.position
+    end
+    assert_not @registry.new(key: "Company").valid?
+  end
+
+  test "every new project gets its own Tags definition" do
+    project = KeilaProject.create!(name: "Gamma", keila_api_key: "gamma-key")
+
+    assert_equal [ "Tags" ], project.custom_field_definitions.pluck(:key)
   end
 
   test "orders by position by default" do
     assert_equal CustomFieldDefinition.order(:position).to_a, CustomFieldDefinition.all.to_a
   end
 
-  test "contacts_count reports how many contacts hold a value for this key" do
+  test "contacts_count reports how many of the project's contacts hold a value for this key" do
+    Contact.create!(keila_project: keila_projects(:beta), email: "other@example.com", data: { "Company" => "Elsewhere" })
+
     assert_equal 1, custom_field_definitions(:company).contacts_count
     assert_equal 0, custom_field_definitions(:birthday).contacts_count
   end
@@ -50,7 +71,7 @@ class CustomFieldDefinitionTest < ActiveSupport::TestCase
 
   test "ensure_tags_definition! is idempotent and always sorts first" do
     assert_no_difference "CustomFieldDefinition.count" do
-      definition = CustomFieldDefinition.ensure_tags_definition!
+      definition = @registry.ensure_tags_definition!
       assert_equal custom_field_definitions(:tags), definition
       assert_equal(-1, definition.position)
     end
@@ -60,7 +81,7 @@ class CustomFieldDefinitionTest < ActiveSupport::TestCase
     custom_field_definitions(:tags).delete # bypasses the before_destroy guard, unlike #destroy
 
     assert_difference "CustomFieldDefinition.count", 1 do
-      definition = CustomFieldDefinition.ensure_tags_definition!
+      definition = @registry.ensure_tags_definition!
       assert_equal "Tags", definition.key
       assert_equal(-1, definition.position)
     end

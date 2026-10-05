@@ -1,7 +1,7 @@
 alpha:
   name: Alpha
-  keila_url: https://alpha.example.com
+  keila_api_key: alpha-key
 
 beta:
   name: Beta
-  keila_url: https://beta.example.com
+  keila_api_key: beta-key

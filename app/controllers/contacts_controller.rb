@@ -8,7 +8,6 @@ class ContactsController < ApplicationController
   def index
     @q = params[:q]
     @tag = params[:tag]
-    @keila_configured = current_project.configured_for_sync?
 
     scope = current_project.contacts.search(@q).tagged_with(@tag).order(:email)
     @page = [ params[:page].to_i, 1 ].max
@@ -18,12 +17,12 @@ class ContactsController < ApplicationController
   end
 
   def show
-    @custom_field_definitions = CustomFieldDefinition.all
+    @custom_field_definitions = current_project.custom_field_definitions
   end
 
   def new
     @contact = current_project.contacts.new
-    @custom_field_definitions = CustomFieldDefinition.all
+    @custom_field_definitions = current_project.custom_field_definitions
   end
 
   def create
@@ -33,13 +32,13 @@ class ContactsController < ApplicationController
     if @contact.save
       redirect_to contacts_path, notice: "Contact created."
     else
-      @custom_field_definitions = CustomFieldDefinition.all
+      @custom_field_definitions = current_project.custom_field_definitions
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
-    @custom_field_definitions = CustomFieldDefinition.all
+    @custom_field_definitions = current_project.custom_field_definitions
   end
 
   def update
@@ -48,7 +47,7 @@ class ContactsController < ApplicationController
     if @contact.save
       redirect_to contacts_path, notice: "Contact updated."
     else
-      @custom_field_definitions = CustomFieldDefinition.all
+      @custom_field_definitions = current_project.custom_field_definitions
       render :edit, status: :unprocessable_entity
     end
   end
@@ -78,39 +77,6 @@ class ContactsController < ApplicationController
 
   def export
     send_data KeilaCsv::Exporter.export(project: current_project), filename: "contacts-#{Date.current.iso8601}.csv", type: "text/csv"
-  end
-
-  # Confirmation screens: syncing the wrong Keila instance (a typo'd URL,
-  # an API key for a different project than you meant) would otherwise
-  # silently merge or push into a project you never intended to touch.
-  # Showing both sides' contact counts up front gives you a chance to
-  # notice before anything happens.
-  def sync_from_keila
-    @keila_count = KeilaApi.client!(current_project).contacts_count
-    @local_count = current_project.contacts.count
-  rescue KeilaApi::Error => e
-    redirect_to contacts_path, alert: "Could not reach Keila: #{e.message}"
-  end
-
-  def do_sync_from_keila
-    result = KeilaApi::Importer.import(project: current_project)
-    redirect_to contacts_path, notice: sync_summary("Pulled", result)
-  rescue KeilaApi::Error => e
-    redirect_to contacts_path, alert: "Sync from Keila failed: #{e.message}"
-  end
-
-  def push_to_keila
-    @keila_count = KeilaApi.client!(current_project).contacts_count
-    @local_count = current_project.contacts.count
-  rescue KeilaApi::Error => e
-    redirect_to contacts_path, alert: "Could not reach Keila: #{e.message}"
-  end
-
-  def do_push_to_keila
-    result = KeilaApi::Exporter.export(project: current_project)
-    redirect_to contacts_path, notice: sync_summary("Pushed", result)
-  rescue KeilaApi::Error => e
-    redirect_to contacts_path, alert: "Push to Keila failed: #{e.message}"
   end
 
   def bulk_update
@@ -144,12 +110,6 @@ class ContactsController < ApplicationController
 
   private
 
-  def require_current_project
-    return if current_project
-
-    redirect_to keila_projects_path, alert: "Create or switch to a project first."
-  end
-
   # All of the current project's contacts matching the index filter (when
   # the "select all N matching this filter" banner was used) or just the
   # checked ones.
@@ -167,14 +127,6 @@ class ContactsController < ApplicationController
 
   def set_all_tags
     @all_tags = current_project.contacts.pluck(:data).flat_map { |data| data[Contact::TAGS_DATA_KEY] || [] }.uniq.sort
-  end
-
-  def sync_summary(verb, result)
-    summary = "#{verb} #{result.success_count} contact(s) (#{result.created} new, #{result.updated} updated)."
-    if result.error_count.positive?
-      summary += " #{result.error_count} failed: #{result.errors.first(5).map { |e| e[:message] }.join('; ')}"
-    end
-    summary
   end
 
   def contact_params

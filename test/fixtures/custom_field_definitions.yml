@@ -1,14 +1,23 @@
 tags:
+  keila_project: alpha
   key: Tags
   label: Tags
   position: -1
 
 company:
+  keila_project: alpha
   key: Company
   label: Company
   position: 0
 
 birthday:
+  keila_project: alpha
   key: Birthday
   label: Birthday
   position: 1
+
+beta_tags:
+  keila_project: beta
+  key: Tags
+  label: Tags
+  position: -1

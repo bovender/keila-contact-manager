@@ -116,4 +116,44 @@ class ContactTest < ActiveSupport::TestCase
     assert_not_includes Contact.having_custom_field("Company"), contacts(:two)
     assert_equal Contact.none.to_a, Contact.having_custom_field(nil).to_a
   end
+
+  test "status is normalized and limited to what Keila accepts" do
+    contact = contacts(:one)
+    contact.status = " Unsubscribed "
+    assert contact.valid?
+    assert_equal "unsubscribed", contact.status
+
+    contact.status = "subscribed"
+    assert_not contact.valid?
+
+    contact.status = ""
+    assert contact.valid?
+    assert_nil contact.status
+  end
+
+  test "destroying a contact that was synced leaves a tombstone with its last synced state" do
+    contact = contacts(:one)
+    contact.update!(keila_id: "nc_1", sync_snapshot: contact.sync_state)
+
+    assert_difference "ContactDeletion.count", 1 do
+      contact.destroy
+    end
+    deletion = keila_projects(:alpha).contact_deletions.find_by!(keila_id: "nc_1")
+    assert_equal "alice@example.com", deletion.email
+    assert_equal "Acme", deletion.snapshot["data"]["Company"]
+  end
+
+  test "destroying a contact that was never synced leaves no tombstone" do
+    assert_no_difference "ContactDeletion.count" do
+      contacts(:one).destroy
+    end
+  end
+
+  test "sync_state leaves out the reserved uid key" do
+    contact = contacts(:one)
+    contact.data = contact.data.merge(Contact::RESERVED_DATA_KEY => contact.uuid)
+
+    assert_equal({ "Company" => "Acme", "Tags" => [ "vip", "newsletter" ] }, contact.sync_state["data"])
+    assert_equal "alice@example.com", contact.sync_state["email"]
+  end
 end

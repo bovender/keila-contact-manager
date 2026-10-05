@@ -15,10 +15,19 @@ class Contact < ApplicationRecord
   # get organized in this app.
   TAGS_DATA_KEY = "Tags"
 
+  # Keila's built-in contact fields this app syncs, besides `data`.
+  SYNCED_ATTRIBUTES = %w[email first_name last_name external_id status].freeze
+
+  # The only statuses Keila accepts.
+  STATUSES = %w[active unsubscribed unreachable].freeze
+
   belongs_to :keila_project
+
+  normalizes :status, with: ->(status) { status.strip.downcase.presence }
 
   before_validation { self.email = email.to_s.strip.downcase }
   before_validation(on: :create) { self.uuid ||= SecureRandom.uuid }
+  after_destroy :record_deletion, if: :keila_id?
 
   # Scoped to keila_project, not global: the same email can legitimately
   # be a different person in a different Keila project (Keila itself
@@ -27,6 +36,7 @@ class Contact < ApplicationRecord
                      uniqueness: { scope: :keila_project_id, case_sensitive: false },
                      format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :uuid, presence: true, uniqueness: true
+  validates :status, inclusion: { in: STATUSES }, allow_blank: true
 
   scope :search, ->(term) {
     return all if term.blank?
@@ -108,7 +118,18 @@ class Contact < ApplicationRecord
     self.data = new_data
   end
 
+  # Everything sync compares with Keila's copy of the contact, in the same
+  # shape as KeilaSync::Plan.remote_state and the stored sync_snapshot.
+  def sync_state
+    SYNCED_ATTRIBUTES.index_with { |attr| self[attr] }.merge("data" => data.except(RESERVED_DATA_KEY))
+  end
+
   private
+
+  def record_deletion
+    deletion = keila_project.contact_deletions.find_or_initialize_by(keila_id: keila_id)
+    deletion.update!(email: email, snapshot: sync_snapshot)
+  end
 
   def normalize_tags(list)
     list.map { |t| t.to_s.strip }.reject(&:blank?).uniq

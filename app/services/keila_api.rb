@@ -11,14 +11,20 @@ module KeilaApi
     end
   end
 
-  # No Keila URL/API key configured for this project (see KeilaProject).
+  # Keila couldn't be reached at all.
+  class ConnectionError < Error; end
+
+  # No Keila instance URL (KEILA_URL) or no API key for this project.
   class NotConfiguredError < Error; end
 
   def self.client!(project)
+    if KeilaProject.keila_url.blank?
+      raise NotConfiguredError, "No Keila instance configured -- set the KEILA_URL environment variable."
+    end
     unless project&.configured_for_sync?
-      raise NotConfiguredError, "Add a Keila instance URL and API key for this project first."
+      raise NotConfiguredError, "Add this project's Keila API key first."
     end
 
-    Client.new(base_url: project.keila_url, api_key: project.keila_api_key)
+    Client.new(base_url: KeilaProject.keila_url, api_key: project.keila_api_key)
   end
 end

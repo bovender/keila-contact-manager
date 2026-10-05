@@ -8,13 +8,21 @@
     <%= link_to "New project", new_keila_project_path, class: "rounded-md px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium" %>
   </div>
 
-  <p class="text-gray-600 mb-6">
-    Each project is one Keila project's worth of contacts &mdash; a Keila
-    API key is itself scoped to a single project, so this app keeps
-    contacts from different projects fully separate, even when the same
-    email address appears in more than one. Everything (the contacts
-    table, custom fields, CSV import/export, sync) works within whichever
-    project is currently active.
+  <p class="text-gray-600 mb-4">
+    Each project here is one project in the Keila instance at
+    <% if KeilaProject.keila_url.present? %>
+      <span class="font-mono text-sm"><%= KeilaProject.keila_url %></span>,
+    <% else %>
+      <span class="text-red-600">(none configured &mdash; set <code>KEILA_URL</code>)</span>,
+    <% end %>
+    tied to it by that project's API key. Contacts, custom fields, CSV
+    import/export and sync all work within whichever project is active, and
+    never mix across projects, even when the same email address is in more
+    than one.
+  </p>
+  <p class="text-gray-600 mb-6 text-sm">
+    To add a Keila project, create an API key for it in Keila (the project's
+    Settings &rarr; API) and paste it into a new project here.
   </p>
 
   <div class="border border-gray-200 rounded-lg divide-y divide-gray-100">
@@ -28,8 +36,11 @@
               <span class="ml-2 text-xs font-medium text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">Active</span>
             <% end %>
             <p class="text-sm text-gray-500">
-              <%= project.keila_url.presence || "No Keila instance configured (CSV only)" %>
-              &middot; <%= pluralize(project.contacts.count, "contact") %>
+              <%= pluralize(project.contacts.count, "contact") %>
+              &middot; <%= project.synced? ? "last synced #{time_ago_in_words(project.last_synced_at)} ago" : "never synced" %>
+              <% unless project.keila_api_key.present? %>
+                &middot; <span class="text-red-600">no API key</span>
+              <% end %>
             </p>
           </div>
           <% unless active %>
@@ -43,8 +54,8 @@
             <%= button_to "Test connection", test_connection_keila_project_path(project), method: :post,
                   class: "text-gray-600 hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
           <% end %>
-          <%= button_to "Delete", keila_project_path(project), method: :delete,
-                form: { data: { turbo_confirm: "Delete project '#{project.name}'? This only works if it has no contacts left." } },
+          <%= button_to "Remove", keila_project_path(project), method: :delete,
+                form: { data: { turbo_confirm: "Remove project '#{project.name}' and its #{pluralize(project.contacts.count, 'contact')} from this app? Nothing is deleted in Keila." } },
                 class: "text-red-600 hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
         </div>
       </div>

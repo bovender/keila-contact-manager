@@ -16,4 +16,10 @@ class ApplicationController < ActionController::Base
   def current_project
     Current.user&.current_keila_project
   end
+
+  def require_current_project
+    return if current_project
+
+    redirect_to keila_projects_path, alert: "Create or switch to a project first."
+  end
 end

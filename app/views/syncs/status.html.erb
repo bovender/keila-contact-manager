@@ -1,0 +1,55 @@
+<%= turbo_frame_tag "sync_status" do %>
+  <% base = "mb-4 px-4 py-3 rounded-lg text-sm flex flex-wrap items-center gap-x-4 gap-y-2" %>
+  <% if !current_project.configured_for_sync? %>
+    <div class="<%= base %> bg-gray-50 text-gray-600 border border-gray-200">
+      <span>
+        <% if KeilaProject.keila_url.blank? %>
+          Sync with Keila is off: no Keila instance configured (set <code>KEILA_URL</code>).
+        <% else %>
+          Sync with Keila is off until this project has its Keila API key.
+        <% end %>
+      </span>
+      <% if KeilaProject.keila_url.present? %>
+        <%= link_to "Add API key", edit_keila_project_path(current_project), class: "underline", data: { turbo_frame: "_top" } %>
+      <% end %>
+    </div>
+  <% elsif @error %>
+    <div class="<%= base %> bg-red-50 text-red-700 border border-red-200">
+      <span>Couldn't check Keila: <%= @error %></span>
+      <%= link_to "Retry", status_sync_path, class: "underline" %>
+    </div>
+  <% elsif !current_project.synced? %>
+    <div class="<%= base %> bg-amber-50 text-amber-800 border border-amber-200">
+      <span>
+        <span class="font-semibold">Not synced with Keila yet.</span>
+        The first sync pairs up contacts on both sides by email (and External ID) &mdash; worth a quick review.
+      </span>
+      <%= link_to "Review first sync", sync_path, data: { turbo_frame: "_top" },
+            class: "ml-auto rounded-md px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-medium" %>
+    </div>
+  <% elsif @plan.in_sync? %>
+    <div class="<%= base %> bg-green-50 text-green-800 border border-green-200">
+      <span><span class="font-semibold">In sync with Keila.</span>
+        Last synced <%= time_ago_in_words(current_project.last_synced_at) %> ago.</span>
+    </div>
+  <% else %>
+    <div class="<%= base %> bg-amber-50 text-amber-800 border border-amber-200">
+      <span>
+        <span class="font-semibold">Sync due:</span>
+        <%= [
+              (pluralize(@plan.from_keila.size, "change") + " in Keila" if @plan.from_keila.any?),
+              (pluralize(@plan.from_here.size, "change") + " here" if @plan.from_here.any?),
+              (pluralize(@plan.conflict_count, "conflict") if @plan.conflict_count.positive?)
+            ].compact.to_sentence %>.
+      </span>
+      <%= link_to "Details", sync_path, class: "underline", data: { turbo_frame: "_top" } %>
+      <% if @plan.one_click? %>
+        <%= button_to "Sync now", sync_path, params: { one_click: 1 }, form: { data: { turbo_frame: "_top" }, class: "ml-auto" },
+              class: "rounded-md px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-medium cursor-pointer" %>
+      <% else %>
+        <%= link_to (@plan.conflict_count.positive? ? "Resolve & sync" : "Review & sync"), sync_path, data: { turbo_frame: "_top" },
+              class: "ml-auto rounded-md px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-medium" %>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

@@ -11,16 +11,21 @@ class KeilaProjectTest < ActiveSupport::TestCase
     assert_includes project.errors[:name], "has already been taken"
   end
 
-  test "configured_for_sync? requires both a URL and an API key" do
-    project = keila_projects(:alpha)
-    assert_not project.configured_for_sync?
+  test "requires an API key" do
+    project = KeilaProject.new(name: "Gamma")
+    assert_not project.valid?
+    assert_includes project.errors[:keila_api_key], "can't be blank"
+  end
 
-    project.keila_api_key = "secret"
+  test "configured_for_sync? requires the instance URL and an API key" do
+    project = keila_projects(:alpha)
     assert project.configured_for_sync?
+
+    with_keila_url(nil) { assert_not project.configured_for_sync? }
   end
 
   test "keila_api_key is stored encrypted" do
-    project = KeilaProject.create!(name: "Encrypted test", keila_url: "https://keila.example.com", keila_api_key: "secret")
+    project = KeilaProject.create!(name: "Encrypted test", keila_api_key: "secret")
     raw = ActiveRecord::Base.connection.select_value(
       "SELECT keila_api_key FROM keila_projects WHERE id = #{project.id}"
     )
@@ -28,11 +33,14 @@ class KeilaProjectTest < ActiveSupport::TestCase
     assert_equal "secret", project.reload.keila_api_key
   end
 
-  test "cannot be destroyed while it still has contacts" do
+  test "destroying removes the local contacts and fields without leaving tombstones" do
     project = keila_projects(:alpha)
-    assert project.contacts.any?
+    contacts(:one).update!(keila_id: "nc_1")
 
-    assert_not project.destroy
-    assert_match(/dependent contacts exist/, project.errors[:base].join)
+    assert_no_difference "ContactDeletion.count" do
+      assert project.destroy
+    end
+    assert_equal 0, Contact.where(keila_project_id: project.id).count
+    assert_equal 0, CustomFieldDefinition.unscoped.where(keila_project_id: project.id).count
   end
 end

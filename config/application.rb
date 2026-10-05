@@ -24,6 +24,10 @@ module KeilaContactManager
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # The one Keila instance this app is bound to. Every project here is a
+    # project in that instance, identified by its own API key.
+    config.x.keila_url = ENV["KEILA_URL"].presence
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files

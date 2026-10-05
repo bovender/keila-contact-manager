@@ -1,5 +1,12 @@
+# Registry of the custom Data keys known in one project, so they show up
+# as table columns and form fields. Each Keila project has its own set of
+# Data keys, so the registry is per project too; class methods are meant
+# to be called through a project's association
+# (`project.custom_field_definitions.register!(key)`).
 class CustomFieldDefinition < ApplicationRecord
-  validates :key, presence: true, uniqueness: true,
+  belongs_to :keila_project
+
+  validates :key, presence: true, uniqueness: { scope: :keila_project_id },
                    exclusion: { in: [ Contact::RESERVED_DATA_KEY ], message: "is reserved for internal use" }
   validates :label, presence: true
 
@@ -20,9 +27,9 @@ class CustomFieldDefinition < ApplicationRecord
   end
 
   # Tags gets its own dedicated UI (pills, filters, bulk tag/untag), so its
-  # registry entry always exists and can't be removed -- called from
-  # db/seeds.rb, which runs on every boot, so this is idempotent and also
-  # covers upgrading an existing install.
+  # registry entry always exists and can't be removed -- created along
+  # with every project, and again from db/seeds.rb (which runs on every
+  # boot) to cover upgrading an existing install.
   def self.ensure_tags_definition!
     definition = find_or_create_by!(key: Contact::TAGS_DATA_KEY) { |d| d.label = "Tags" }
     definition.update_column(:position, -1) unless definition.position == -1
@@ -33,10 +40,10 @@ class CustomFieldDefinition < ApplicationRecord
     key == Contact::TAGS_DATA_KEY
   end
 
-  # Number of contacts whose data currently holds a value for this key.
-  # Used to warn before permanently deleting the field's data.
+  # Number of this project's contacts whose data currently holds a value
+  # for this key. Used to warn before permanently deleting the field's data.
   def contacts_count
-    Contact.having_custom_field(key).count
+    keila_project.contacts.having_custom_field(key).count
   end
 
   private
@@ -53,6 +60,6 @@ class CustomFieldDefinition < ApplicationRecord
   end
 
   def assign_position
-    self.position = (CustomFieldDefinition.unscoped.maximum(:position) || -1) + 1
+    self.position = (CustomFieldDefinition.unscoped.where(keila_project_id: keila_project_id).maximum(:position) || -1) + 1
   end
 end

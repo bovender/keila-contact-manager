@@ -17,5 +17,5 @@ if User.none?
   end
 end
 
-# Tags has its own dedicated UI, so its registry entry must always exist.
-CustomFieldDefinition.ensure_tags_definition!
+# Tags has its own dedicated UI, so every project's registry must have it.
+KeilaProject.find_each { |project| project.custom_field_definitions.ensure_tags_definition! }

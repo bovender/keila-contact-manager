@@ -9,6 +9,22 @@ format.
 
 This is an independent companion project, not affiliated with Keila.
 
+## Description
+
+Keila Contact Manager (KCM) offers advanced contact management features
+to work with lists of contacts in the Keila Open Source newsletter
+software. It is bound to a single Keila instance. Projects within this
+single Keila instance are projects in KCM. KCM is able to perform
+two-way synchronization of contacts, and it knows when synchronization
+is needed, either because the local data have been updated, the remote
+contact list was changed, or both. It informs the user that synchronization
+is due and offers a one-click synchronization trigger button.
+
+KCM allows for an arbitrary number of additional data fields beyond
+the built-in fields of Keila; the additional fields are stored in Keila's
+`data` field. _Tags_ are a special kind of additional field that is native
+to KCM -- tags can be filtered and toggled easily.
+
 ## Features
 
 - Import contacts from a Keila CSV export (including the `Data` JSON
@@ -20,10 +36,13 @@ This is an independent companion project, not affiliated with Keila.
 - Custom fields are schema-free: new ones show up automatically on import,
   or you can add them by hand, with no migration required
 - Bulk tag, untag, and delete
-- Works with any number of separate Keila projects, each with its own
-  contacts and its own Keila instance URL/API key — switch between them
-  without their contacts ever mixing, even when the same email address
-  exists in more than one
+- Two-way sync with Keila's REST API: the contacts page tells you when a
+  sync is due (changes here, in Keila, or both) and syncs with one click;
+  conflicting edits are shown side by side for you to decide
+- Bound to one Keila instance; each of its projects is a project here,
+  with its own contacts and custom fields — switch between them without
+  their contacts ever mixing, even when the same email address exists in
+  more than one
 - Single-user login (this is a personal/small-team tool, not a multi-tenant
   SaaS)
 
@@ -36,7 +55,7 @@ This is an independent companion project, not affiliated with Keila.
 
 ```sh
 cp .env.example .env
-# edit .env: set RAILS_MASTER_KEY and ADMIN_PASSWORD (see below)
+# edit .env: set RAILS_MASTER_KEY, ADMIN_PASSWORD and KEILA_URL (see below)
 
 docker compose up --build
 ```
@@ -123,42 +142,50 @@ Environment variables:
 | Variable | Purpose |
 | --- | --- |
 | `RAILS_MASTER_KEY` | Decrypts credentials in production/Docker (contents of `config/master.key`) |
+| `KEILA_URL` | The Keila instance this app is bound to, e.g. `https://keila.example.com` |
 | `ADMIN_EMAIL` | Email for the initial user, created on first boot (default `admin@example.com`) |
 | `ADMIN_PASSWORD` | Password for the initial user (required to create it) |
 
 ### Projects
 
-This app organizes contacts into **projects**, at `/keila_projects`. Each
-project is meant to mirror one Keila project: a Keila API key is itself
-always scoped to a single Keila project, so contacts here are kept fully
-partitioned by project too — the same email address can exist in two
-different projects as two entirely separate contacts, and CSV
-import/export, custom fields, search, and sync all operate only on
-whichever project is currently active. Switch the active project from the
-nav bar or the projects page; the app requires an active project before
-showing the contacts table.
+The app is bound to the one Keila instance at `KEILA_URL`, and a
+**project** here is a project in that instance. Keila ties every API key
+to exactly one project (and its API has no way to list projects), so you
+add a project at `/keila_projects` by giving it a name and pasting an API
+key created in Keila under that project's Settings → API. The key is
+stored encrypted using Active Record Encryption.
 
-A project's Keila instance URL and API key (encrypted at rest using
-Active Record Encryption) are optional per project — used for live sync
-with Keila's REST API, see below. A project with no URL/key configured is
-still fully usable via CSV import/export alone.
+Contacts are kept fully partitioned by project — the same email address
+can exist in two projects as two entirely separate contacts — and custom
+fields, search, CSV import/export and sync all operate only on whichever
+project is currently active. Switch the active project from the nav bar
+or the projects page. Removing a project only removes the local copy of
+its contacts; nothing is deleted in Keila.
 
-## Live sync with the Keila API
+## Two-way sync with Keila
 
-Once a project has a Keila instance URL and API key (generate one in
-Keila under that project's Settings → API), its contacts page gets two
-extra buttons:
+The contacts page checks the active project against Keila and shows
+whether a sync is due: because contacts were changed here, in Keila
+(edits, sign-ups, unsubscribes), or both. When there's nothing to decide,
+**Sync now** does it in one click; otherwise the sync screen lists what
+will happen first:
 
-- **Sync from Keila** pulls every contact from that project's Keila
-  instance and upserts them locally, into the active project only.
-- **Push to Keila** pushes every local contact in the active project to
-  its Keila instance, creating or updating as needed.
+- A field changed on one side only is taken over by the other side.
+  Fields changed on different sides of the same contact merge.
+- A field changed on *both* sides to different values is a **conflict**:
+  the sync screen shows both values and you pick one.
+- Contacts deleted on one side are deleted on the other, but only after
+  the sync screen has shown you the list. A contact deleted on one side
+  but changed on the other since is a conflict too: keep it or delete it.
+- The very first sync of a project pairs up contacts that already exist
+  on both sides (by this app's own id embedded in `Data`, then External
+  ID, then email) and always goes through the sync screen.
 
-Both use the same identity matching as CSV import (this app's own uuid →
-`External_id` → email), so an email changed on either side doesn't create
-a duplicate on the next sync — and matching is always scoped to the
-active project, so contacts never leak or merge across projects even when
-two Keila projects happen to share an email address.
+This works by remembering, per contact, Keila's contact id and the state
+both sides agreed on at the last sync, so each side can be compared
+against it. Keila is only ever sent what changed: custom fields are
+merged key by key, so a `Data` key added in Keila meanwhile (by a form,
+or another integration) survives.
 
 To exercise this against a real Keila instance rather than just the
 stubbed test suite, `docker-compose.keila-dev.yml` spins one up
@@ -166,12 +193,13 @@ stubbed test suite, `docker-compose.keila-dev.yml` spins one up
 file):
 
 ```sh
-docker compose -f docker-compose.keila-dev.yml up -d
+KEILA_SECRET_KEY_BASE=$(openssl rand -hex 64) \
+  docker compose -f docker-compose.keila-dev.yml up -d
 # Keila is now at http://localhost:4445; the generated root password is
 # in `docker compose -f docker-compose.keila-dev.yml logs keila`.
 # Sign in, create a project, generate an API key under its Settings ->
-# API, and paste http://localhost:4445 + that key into the matching
-# project at this app's own /keila_projects page.
+# API, then run this app with KEILA_URL=http://localhost:4445 and add a
+# project with that key at /keila_projects.
 ```
 
 ## Custom fields, tags, and the CSV format
@@ -184,9 +212,10 @@ own CSV export, or its API. (An earlier version of this README assumed
 otherwise.)
 
 This app mirrors Keila's shape: custom fields live in a single JSON
-column per contact, and a small registry (`CustomFieldDefinition`) tracks
-which keys are known so they show up as table columns and form fields —
-without ever needing a database migration to add one.
+column per contact, and a small per-project registry
+(`CustomFieldDefinition`) tracks which keys are known so they show up as
+table columns and form fields — without ever needing a database
+migration to add one.
 
 **Tags are just one such custom field** — stored at the reserved key
 `Contact::TAGS_DATA_KEY` ("Tags") inside `data`, so they travel through
@@ -194,13 +223,14 @@ without ever needing a database migration to add one.
 What makes them different from an ordinary custom field is entirely at
 the app layer: a permanent, non-deletable registry entry, and dedicated
 UI (pills, tag filter, bulk tag/untag) since they're central to how
-contacts get organized here. Re-syncing replaces a contact's tag list
-outright with whatever the source currently says, rather than merging it
-— for tags specifically, "what the source says now" is more useful than
-"union of everything ever seen."
+contacts get organized here. Re-importing a CSV replaces a contact's tag
+list outright with whatever the file says, rather than merging it — for
+tags specifically, "what the source says now" is more useful than "union
+of everything ever seen." In two-way sync, a contact's tag list is one
+field like any other (order doesn't matter).
 
-- Importing a Keila export with unfamiliar `Data` keys (or unfamiliar flat
-  columns) registers them automatically.
+- Importing a Keila export or syncing with unfamiliar `Data` keys (or
+  unfamiliar flat CSV columns) registers them automatically.
 - You can also add or remove fields from the registry directly at
   `/custom_field_definitions`. Removing a field from the registry only
   hides it from forms/table — existing contact data is kept. Tags can't

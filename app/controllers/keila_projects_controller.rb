@@ -33,7 +33,7 @@ class KeilaProjectsController < ApplicationController
 
   def destroy
     if @keila_project.destroy
-      redirect_to keila_projects_path, notice: "Project deleted."
+      redirect_to keila_projects_path, notice: "Project and its local contacts removed. Nothing was deleted in Keila."
     else
       redirect_to keila_projects_path, alert: @keila_project.errors.full_messages.to_sentence
     end
@@ -45,14 +45,8 @@ class KeilaProjectsController < ApplicationController
   end
 
   def test_connection
-    unless @keila_project.configured_for_sync?
-      redirect_to keila_projects_path, alert: "Add a Keila instance URL and API key for this project first."
-      return
-    end
-
-    KeilaApi::Client.new(base_url: @keila_project.keila_url, api_key: @keila_project.keila_api_key)
-      .list_contacts(page: 0, page_size: 1)
-    redirect_to keila_projects_path, notice: "Connected to Keila successfully."
+    count = KeilaApi.client!(@keila_project).list_contacts(page: 0, page_size: 1).dig("meta", "count")
+    redirect_to keila_projects_path, notice: "Connected to Keila: #{@keila_project.name} has #{count} contact(s) there."
   rescue KeilaApi::Error => e
     redirect_to keila_projects_path, alert: "Could not connect to Keila: #{e.message}"
   end
@@ -64,7 +58,7 @@ class KeilaProjectsController < ApplicationController
   end
 
   def keila_project_params
-    permitted = params.require(:keila_project).permit(:name, :keila_url, :keila_api_key)
+    permitted = params.require(:keila_project).permit(:name, :keila_api_key)
     permitted.delete(:keila_api_key) if permitted[:keila_api_key].blank?
     permitted
   end

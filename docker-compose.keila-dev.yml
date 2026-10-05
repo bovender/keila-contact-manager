@@ -4,13 +4,14 @@
 # self-hosting compose file and has nothing to do with Keila itself.
 #
 # Usage:
-#   docker compose -f docker-compose.keila-dev.yml up -d
+#   KEILA_SECRET_KEY_BASE=$(openssl rand -hex 64) \
+#     docker compose -f docker-compose.keila-dev.yml up -d
 #   # Keila is now at http://localhost:4445. The first boot logs a
 #   # generated root password ("Setting random root user password: ...")
 #   # -- `docker compose -f docker-compose.keila-dev.yml logs keila`.
 #   # Sign in at /auth/login, create a project, and generate an API key
-#   # under that project's Settings -> API to use in this app's own
-#   # Settings page.
+#   # under that project's Settings -> API. Run this app with
+#   # KEILA_URL=http://localhost:4445 and add a project with that key.
 services:
   keila-db:
     image: postgres:15

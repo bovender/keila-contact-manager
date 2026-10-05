@@ -10,37 +10,53 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_16_193510) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_090000) do
+  create_table "contact_deletions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email"
+    t.string "keila_id", null: false
+    t.integer "keila_project_id", null: false
+    t.json "snapshot"
+    t.datetime "updated_at", null: false
+    t.index ["keila_project_id", "keila_id"], name: "index_contact_deletions_on_keila_project_id_and_keila_id", unique: true
+    t.index ["keila_project_id"], name: "index_contact_deletions_on_keila_project_id"
+  end
+
   create_table "contacts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.json "data", default: {}, null: false
     t.string "email", null: false
     t.string "external_id"
     t.string "first_name"
+    t.string "keila_id"
     t.integer "keila_project_id", null: false
     t.string "last_name"
     t.string "status"
+    t.json "sync_snapshot"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false
     t.index ["email", "keila_project_id"], name: "index_contacts_on_email_and_keila_project_id", unique: true
     t.index ["external_id"], name: "index_contacts_on_external_id"
+    t.index ["keila_project_id", "keila_id"], name: "index_contacts_on_keila_project_id_and_keila_id", unique: true
     t.index ["keila_project_id"], name: "index_contacts_on_keila_project_id"
     t.index ["uuid"], name: "index_contacts_on_uuid", unique: true
   end
 
   create_table "custom_field_definitions", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "keila_project_id", null: false
     t.string "key", null: false
     t.string "label", null: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
-    t.index ["key"], name: "index_custom_field_definitions_on_key", unique: true
+    t.index ["keila_project_id", "key"], name: "index_custom_field_definitions_on_keila_project_id_and_key", unique: true
+    t.index ["keila_project_id"], name: "index_custom_field_definitions_on_keila_project_id"
   end
 
   create_table "keila_projects", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "keila_api_key"
-    t.string "keila_url"
+    t.datetime "last_synced_at"
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_keila_projects_on_name", unique: true
@@ -65,7 +81,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_16_193510) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "contact_deletions", "keila_projects"
   add_foreign_key "contacts", "keila_projects"
+  add_foreign_key "custom_field_definitions", "keila_projects"
   add_foreign_key "sessions", "users"
   add_foreign_key "users", "keila_projects", column: "current_keila_project_id"
 end

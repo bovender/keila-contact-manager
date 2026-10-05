@@ -22,6 +22,11 @@ Rails.application.configure do
   config.consider_all_requests_local = true
   config.cache_store = :null_store
 
+  config.x.keila_url = "https://keila.example.com"
+
+  # Lets fixtures set encrypted attributes (KeilaProject#keila_api_key) in plain text.
+  config.active_record.encryption.encrypt_fixtures = true
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 

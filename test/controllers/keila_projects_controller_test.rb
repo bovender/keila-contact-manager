@@ -14,7 +14,7 @@ class KeilaProjectsControllerTest < ActionDispatch::IntegrationTest
     users(:one).update!(current_keila_project: nil)
 
     assert_difference "KeilaProject.count", 1 do
-      post keila_projects_path, params: { keila_project: { name: "Gamma" } }
+      post keila_projects_path, params: { keila_project: { name: "Gamma", keila_api_key: "gamma-key" } }
     end
 
     assert_redirected_to keila_projects_path
@@ -23,7 +23,7 @@ class KeilaProjectsControllerTest < ActionDispatch::IntegrationTest
 
   test "create does not steal the active project away from an already-active one" do
     assert_difference "KeilaProject.count", 1 do
-      post keila_projects_path, params: { keila_project: { name: "Gamma" } }
+      post keila_projects_path, params: { keila_project: { name: "Gamma", keila_api_key: "gamma-key" } }
     end
 
     assert_equal keila_projects(:alpha), users(:one).reload.current_keila_project
@@ -36,41 +36,39 @@ class KeilaProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "update changes the url and api key" do
+  test "create requires an API key" do
+    assert_no_difference "KeilaProject.count" do
+      post keila_projects_path, params: { keila_project: { name: "Gamma" } }
+    end
+    assert_response :unprocessable_entity
+  end
+
+  test "update changes the name and api key" do
     patch keila_project_path(keila_projects(:alpha)), params: {
-      keila_project: { keila_url: "https://alpha.example.com", keila_api_key: "secret" }
+      keila_project: { name: "Alpha 2", keila_api_key: "secret" }
     }
 
     assert_redirected_to keila_projects_path
     project = keila_projects(:alpha).reload
-    assert_equal "https://alpha.example.com", project.keila_url
+    assert_equal "Alpha 2", project.name
     assert_equal "secret", project.keila_api_key
   end
 
   test "update with a blank api key leaves the existing key untouched" do
-    keila_projects(:alpha).update!(keila_url: "https://alpha.example.com", keila_api_key: "secret")
-
     patch keila_project_path(keila_projects(:alpha)), params: {
       keila_project: { keila_api_key: "" }
     }
 
     assert_redirected_to keila_projects_path
-    assert_equal "secret", keila_projects(:alpha).reload.keila_api_key
+    assert_equal "alpha-key", keila_projects(:alpha).reload.keila_api_key
   end
 
-  test "destroy removes a project with no contacts" do
-    assert_difference "KeilaProject.count", -1 do
-      delete keila_project_path(keila_projects(:beta))
-    end
-    assert_redirected_to keila_projects_path
-  end
-
-  test "destroy refuses to remove a project that still has contacts" do
-    assert_no_difference "KeilaProject.count" do
+  test "destroy removes the project and its local contacts only" do
+    assert_difference "KeilaProject.count" => -1, "Contact.count" => -2 do
       delete keila_project_path(keila_projects(:alpha))
     end
     assert_redirected_to keila_projects_path
-    assert_match(/dependent contacts exist/, flash[:alert])
+    assert_match(/Nothing was deleted in Keila/, flash[:notice])
   end
 
   test "activate switches the user's active project" do
@@ -81,19 +79,18 @@ class KeilaProjectsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "test_connection reports success" do
-    keila_projects(:alpha).update!(keila_url: "https://keila.example.com", keila_api_key: "secret")
     stub_request(:get, "https://keila.example.com/api/v1/contacts")
-      .with(query: { "paginate[page]" => "0", "paginate[page_size]" => "1" })
-      .to_return(status: 200, body: { data: [], meta: { count: 0 } }.to_json)
+      .with(query: { "paginate[page]" => "0", "paginate[page_size]" => "1" },
+            headers: { "Authorization" => "Bearer alpha-key" })
+      .to_return(status: 200, body: { data: [], meta: { count: 7 } }.to_json)
 
     post test_connection_keila_project_path(keila_projects(:alpha))
 
     assert_redirected_to keila_projects_path
-    assert_equal "Connected to Keila successfully.", flash[:notice]
+    assert_equal "Connected to Keila: Alpha has 7 contact(s) there.", flash[:notice]
   end
 
   test "test_connection reports failure" do
-    keila_projects(:alpha).update!(keila_url: "https://keila.example.com", keila_api_key: "wrong")
     stub_request(:get, "https://keila.example.com/api/v1/contacts")
       .with(query: { "paginate[page]" => "0", "paginate[page_size]" => "1" })
       .to_return(status: 401, body: { error: "unauthorized" }.to_json)
@@ -105,9 +102,9 @@ class KeilaProjectsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "test_connection without a configured instance redirects with an alert" do
-    post test_connection_keila_project_path(keila_projects(:beta))
+    with_keila_url(nil) { post test_connection_keila_project_path(keila_projects(:beta)) }
 
     assert_redirected_to keila_projects_path
-    assert_match(/Add a Keila instance URL and API key/, flash[:alert])
+    assert_match(/set the KEILA_URL/, flash[:alert])
   end
 end

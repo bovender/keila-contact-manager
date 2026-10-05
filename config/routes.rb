@@ -9,6 +9,12 @@ Rails.application.routes.draw do
     end
   end
 
+  # Two-way sync of the active project with Keila: the review screen
+  # (show), carrying it out (create), and the contacts page banner (status).
+  resource :sync, only: %i[show create] do
+    get :status
+  end
+
   resources :custom_field_definitions, only: [ :index, :create, :update, :destroy ]
 
   resources :contacts do
@@ -18,10 +24,6 @@ Rails.application.routes.draw do
       get :export
       post :bulk_update
       post :bulk_destroy
-      get :sync_from_keila
-      post :sync_from_keila, action: :do_sync_from_keila
-      get :push_to_keila
-      post :push_to_keila, action: :do_push_to_keila
     end
   end
 

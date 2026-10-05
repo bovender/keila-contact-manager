@@ -1,10 +1,12 @@
 class CustomFieldDefinitionsController < ApplicationController
+  before_action :require_current_project
+
   def index
-    @custom_field_definitions = CustomFieldDefinition.all
+    @custom_field_definitions = current_project.custom_field_definitions
   end
 
   def create
-    @custom_field_definition = CustomFieldDefinition.new(custom_field_definition_params)
+    @custom_field_definition = current_project.custom_field_definitions.new(custom_field_definition_params)
 
     if @custom_field_definition.save
       redirect_back fallback_location: custom_field_definitions_path, notice: "Custom field added."
@@ -15,7 +17,7 @@ class CustomFieldDefinitionsController < ApplicationController
   end
 
   def update
-    @custom_field_definition = CustomFieldDefinition.find(params[:id])
+    @custom_field_definition = current_project.custom_field_definitions.find(params[:id])
 
     if @custom_field_definition.update(custom_field_definition_params)
       redirect_to custom_field_definitions_path, notice: "Custom field updated."
@@ -25,7 +27,7 @@ class CustomFieldDefinitionsController < ApplicationController
   end
 
   def destroy
-    @custom_field_definition = CustomFieldDefinition.find(params[:id])
+    @custom_field_definition = current_project.custom_field_definitions.find(params[:id])
     key = @custom_field_definition.key
 
     if @custom_field_definition.protected?
@@ -35,7 +37,7 @@ class CustomFieldDefinitionsController < ApplicationController
 
     if ActiveModel::Type::Boolean.new.cast(params[:purge_data])
       purged = 0
-      Contact.having_custom_field(key).find_each do |contact|
+      current_project.contacts.having_custom_field(key).find_each do |contact|
         contact.set_custom_field(key, nil)
         contact.save!
         purged += 1

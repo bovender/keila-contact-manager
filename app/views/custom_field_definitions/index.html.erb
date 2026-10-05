@@ -46,7 +46,7 @@
   </div>
 
   <h2 class="text-lg font-semibold text-gray-900 mb-2">Add a custom field</h2>
-  <%= form_with model: CustomFieldDefinition.new, url: custom_field_definitions_path, class: "flex items-end gap-3" do |form| %>
+  <%= form_with model: current_project.custom_field_definitions.new, url: custom_field_definitions_path, class: "flex items-end gap-3" do |form| %>
     <div>
       <%= form.label :key, "Key", class: "block text-sm font-medium text-gray-700 mb-1" %>
       <%= form.text_field :key, placeholder: "Company", class: "rounded-md border border-gray-300 px-2 py-1" %>
