@@ -5,7 +5,7 @@ gem "rails", "~> 8.1.3", ">= 8.1.3.1"
 # Pinned below 3.0: json 3.0's JSON.parse dropped the positional options-hash
 # argument that ActiveSupport::JSON.decode (still) passes, breaking JSON
 # column serialization on activesupport 8.1.3.1.
-gem "json", "~> 2.21"
+gem "json", "~> 3.0"
 # csv is no longer a default gem as of Ruby 3.4
 gem "csv"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
