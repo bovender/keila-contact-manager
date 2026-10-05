@@ -43,6 +43,18 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "show lists first and last name as fields of their own" do
+    contact = contacts(:one)
+    contact.update!(first_name: "Alicia", last_name: "Anders")
+
+    get contact_path(contact)
+
+    assert_select "dt", text: "First name"
+    assert_select "dt", text: "Last name"
+    assert_select "dt:contains('First name') + dd", text: "Alicia"
+    assert_select "dt:contains('Last name') + dd", text: "Anders"
+  end
+
   test "show displays the contact, including unregistered custom fields" do
     contact = contacts(:one)
     contact.set_custom_field("Orphaned_field", "leftover")
