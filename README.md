@@ -43,8 +43,8 @@ to KCM -- tags can be filtered and toggled easily.
   with its own contacts and custom fields — switch between them without
   their contacts ever mixing, even when the same email address exists in
   more than one
-- Single-user login (this is a personal/small-team tool, not a multi-tenant
-  SaaS)
+- Password login, or single sign-on via OpenID Connect (e.g. Keycloak) —
+  this is a personal/small-team tool, not a multi-tenant SaaS
 
 ## Requirements
 
@@ -143,8 +143,24 @@ Environment variables:
 | --- | --- |
 | `RAILS_MASTER_KEY` | Decrypts credentials in production/Docker (contents of `config/master.key`) |
 | `KEILA_URL` | The Keila instance this app is bound to, e.g. `https://keila.example.com` |
+| `APP_URL` | The app's public URL when hosted, e.g. `https://kcm.example.com`; served via `https`, the app trusts the reverse proxy's `X-Forwarded-Proto` and insists on SSL |
+| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | Single sign-on, see below |
+| `OIDC_PROVIDER_NAME` | Label on the sign-in button (optional) |
+| `OIDC_REQUIRED_GROUP` | Only users with this group in their `groups` claim may sign in (optional) |
 | `ADMIN_EMAIL` | Email for the initial user, created on first boot (default `admin@example.com`) |
 | `ADMIN_PASSWORD` | Password for the initial user (required to create it) |
+
+### Single sign-on (OpenID Connect)
+
+Set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` and `APP_URL`
+to sign in through an OpenID Connect provider such as Keycloak, using a
+confidential client with the redirect URI `APP_URL/auth/oidc/callback`
+(and, for signing out of the provider too, the post-logout redirect URI
+`APP_URL/session/new`). Single sign-on then replaces password login and
+password reset entirely. Users are created on their first sign-in, and an
+existing user with the same email address is taken over; who may sign in
+is up to the provider (in Keycloak, e.g. by gating the client on a
+group), optionally double-checked with `OIDC_REQUIRED_GROUP`.
 
 ### Projects
 
@@ -172,7 +188,7 @@ will happen first:
 
 - A field changed on one side only is taken over by the other side.
   Fields changed on different sides of the same contact merge.
-- A field changed on *both* sides to different values is a **conflict**:
+- A field changed on _both_ sides to different values is a **conflict**:
   the sync screen shows both values and you pick one.
 - Contacts deleted on one side are deleted on the other, but only after
   the sync screen has shown you the list. A contact deleted on one side
@@ -201,6 +217,26 @@ KEILA_SECRET_KEY_BASE=$(openssl rand -hex 64) \
 # API, then run this app with KEILA_URL=http://localhost:4445 and add a
 # project with that key at /keila_projects.
 ```
+
+## Deploying with Kamal
+
+`config/deploy.yml` holds the [Kamal](https://kamal-deploy.org) settings
+every deployment shares; your server's specifics go into a destination
+file, `config/deploy.<name>.yml`, which is gitignored. Start from
+`config/deploy.example.yml` (it assumes a reverse proxy of your own that
+terminates TLS and forwards to kamal-proxy), and put the secrets into
+`.kamal/secrets-common` (`RAILS_MASTER_KEY=$(cat config/master.key)`) and
+`.kamal/secrets.<name>` (registry password, `OIDC_CLIENT_SECRET`), also
+gitignored. Then:
+
+```sh
+bin/kamal setup -d <name>    # first deployment
+bin/kamal deploy -d <name>
+```
+
+The container runs as uid/gid 1000 and keeps its SQLite databases in the
+volume mounted at `/rails/storage`, so a host directory used for it must
+be writable by that uid.
 
 ## Custom fields, tags, and the CSV format
 

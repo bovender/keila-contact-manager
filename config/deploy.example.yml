@@ -1,0 +1,45 @@
+# Example destination for config/deploy.yml: copy to
+# config/deploy.<name>.yml, fill in, and deploy with
+# `bin/kamal deploy -d <name>`. This example assumes your server already
+# runs a reverse proxy that terminates TLS and forwards to kamal-proxy.
+servers:
+  web:
+    - server.example.com
+
+ssh:
+  user: deploy
+
+image: your-user/kcm
+registry:
+  server: registry.example.com
+  username: your-user
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+proxy:
+  host: kcm.example.com
+  ssl: false            # TLS ends at your own reverse proxy
+  app_port: 80
+  run:
+    http_port: 8090     # where your reverse proxy forwards to
+    https_port: 8091    # unused with ssl: false, but must be a free port
+    bind_ips:
+      - "127.0.0.1"
+
+env:
+  # Lists replace the ones in deploy.yml, so repeat RAILS_MASTER_KEY.
+  secret:
+    - RAILS_MASTER_KEY
+    - OIDC_CLIENT_SECRET
+  clear:
+    APP_URL: https://kcm.example.com
+    KEILA_URL: https://keila.example.com
+    # Single sign-on (optional; without it, set ADMIN_EMAIL/ADMIN_PASSWORD
+    # as secrets for the initial password login instead).
+    OIDC_ISSUER: https://sso.example.com/realms/example
+    OIDC_CLIENT_ID: kcm
+    OIDC_PROVIDER_NAME: Example SSO
+
+volumes:
+  # The container runs as uid/gid 1000, which must be able to write here.
+  - "/srv/kcm/storage:/rails/storage"

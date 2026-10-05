@@ -10,6 +10,8 @@ require "webmock/minitest"
 # request -- notably to the Keila API -- must be stubbed explicitly.
 WebMock.disable_net_connect!(allow_localhost: true)
 
+OmniAuth.config.test_mode = true
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
@@ -17,6 +19,19 @@ module ActiveSupport
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
+
+    OIDC_TEST_CONFIG = {
+      issuer: "https://sso.example.com/realms/test", client_id: "kcm", client_secret: "secret",
+      redirect_uri: "http://www.example.com/auth/oidc/callback", provider_name: "Example SSO", required_group: nil
+    }.freeze
+
+    def with_oidc(**overrides)
+      original = Rails.configuration.x.oidc
+      Rails.configuration.x.oidc = OIDC_TEST_CONFIG.merge(overrides)
+      yield
+    ensure
+      Rails.configuration.x.oidc = original
+    end
 
     def with_keila_url(url)
       original = Rails.configuration.x.keila_url

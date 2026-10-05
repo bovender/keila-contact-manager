@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_05_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
   create_table "contact_deletions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email"
@@ -75,10 +75,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_090000) do
     t.datetime "created_at", null: false
     t.integer "current_keila_project_id"
     t.string "email_address", null: false
+    t.string "oidc_subject"
     t.string "password_digest", null: false
     t.datetime "updated_at", null: false
     t.index ["current_keila_project_id"], name: "index_users_on_current_keila_project_id"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
+    t.index ["oidc_subject"], name: "index_users_on_oidc_subject", unique: true
   end
 
   add_foreign_key "contact_deletions", "keila_projects"

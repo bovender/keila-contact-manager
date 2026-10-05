@@ -5,7 +5,8 @@
 # This is a single/small-team tool: create the initial user from environment
 # variables so a fresh self-hosted install can log in right away. Safe to
 # re-run; it only acts when no user exists yet.
-if User.none?
+# With single sign-on (OIDC_ISSUER), users are created on first sign-in.
+if User.none? && ENV["OIDC_ISSUER"].blank?
   email = ENV.fetch("ADMIN_EMAIL", "admin@example.com")
   password = ENV.fetch("ADMIN_PASSWORD", nil)
 

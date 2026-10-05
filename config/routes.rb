@@ -1,6 +1,9 @@
 Rails.application.routes.draw do
   resource :session
   resources :passwords, param: :token
+  # Single sign-on; OmniAuth itself handles POST /auth/oidc.
+  get "auth/oidc/callback", to: "sessions#oidc_callback"
+  get "auth/failure", to: "sessions#oidc_failure"
 
   resources :keila_projects do
     member do

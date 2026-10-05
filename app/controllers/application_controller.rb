@@ -6,7 +6,7 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
-  helper_method :current_project
+  helper_method :current_project, :oidc_enabled?, :oidc_config
 
   private
 
@@ -15,6 +15,15 @@ class ApplicationController < ActionController::Base
   # custom fields, sync) operates within whichever project this is.
   def current_project
     Current.user&.current_keila_project
+  end
+
+  # Single sign-on settings (config/initializers/omniauth.rb), or nil.
+  def oidc_config
+    Rails.configuration.x.oidc
+  end
+
+  def oidc_enabled?
+    oidc_config.present?
   end
 
   def require_current_project

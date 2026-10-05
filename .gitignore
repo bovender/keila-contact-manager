@@ -34,8 +34,11 @@ node_modules/
 # Ignore .byebug_history.
 .byebug_history
 
-# Kamal deployment secrets.
-/.kamal/secrets
+# Kamal deployment secrets, and the server-specific Kamal destinations
+# (config/deploy.<name>.yml, see config/deploy.yml).
+/.kamal/secrets*
+/config/deploy.*.yml
+!/config/deploy.example.yml
 
 # Ignore key files for decrypting credentials and more.
 /config/credentials/*.key
