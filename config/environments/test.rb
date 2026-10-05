@@ -24,7 +24,12 @@ Rails.application.configure do
 
   config.x.keila_url = "https://keila.example.com"
 
-  # Lets fixtures set encrypted attributes (KeilaProject#keila_api_key) in plain text.
+  # Active Record Encryption (KeilaProject#keila_api_key) with fixed,
+  # throwaway keys, so tests need no credentials and CI no secrets.
+  config.active_record.encryption.primary_key = "test-primary-key-not-a-secret-0000"
+  config.active_record.encryption.deterministic_key = "test-deterministic-key-not-a-secret"
+  config.active_record.encryption.key_derivation_salt = "test-key-derivation-salt-not-a-secret"
+  # Lets fixtures set encrypted attributes in plain text.
   config.active_record.encryption.encrypt_fixtures = true
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.

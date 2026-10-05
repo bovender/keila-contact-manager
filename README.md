@@ -121,19 +121,24 @@ the same thing via its `selenium` service. If you're driving a different
 remote Chrome (e.g. a Selenium Grid elsewhere), point at it with
 `SELENIUM_REMOTE_URL` and `CAPYBARA_APP_HOST`.
 
-### Continuous integration
+### Continuous integration and deployment
 
-The GitHub Actions workflow (`.github/workflows/ci.yml`) needs a
-`RAILS_MASTER_KEY` repository secret to decrypt credentials for the test
-job (the Active Record Encryption keys used for each project's API key
-live there). **Use the test-environment key, not your production one:**
-this repo ships `config/credentials/test.yml.enc`, decrypted by
-`config/credentials/test.key` (gitignored, generated locally by
-`bin/rails credentials:edit --environment test`). Add its contents as the
-`RAILS_MASTER_KEY` secret under repo Settings → Secrets and variables →
-Actions. Keeping test and production credentials on separate keys means a
-compromised CI run can never expose the key protecting real Keila API
-keys in production.
+Two workflows run the same checks (Brakeman, bundler-audit, importmap
+audit, RuboCop, tests) without needing any secrets — the test environment
+uses fixed, throwaway Active Record Encryption keys:
+
+- `.github/workflows/ci.yml` on GitHub, which also runs the Selenium
+  system tests.
+- `.gitea/workflows/ci.yml` on a Gitea instance, which adds a `deploy`
+  job: on pushes to `main`, once every check has passed, it runs `kamal
+  deploy` (see [Deploying with Kamal](#deploying-with-kamal)). Since the
+  Kamal destination files aren't in git, the job takes them from
+  repository variables, and it only runs where they're set:
+  `KAMAL_DESTINATION` (the destination's name), `KAMAL_DEPLOY_CONFIG`
+  (the contents of `config/deploy.<name>.yml`) and `KAMAL_DEPLOY_SECRETS`
+  (of `.kamal/secrets.<name>`), plus the secrets `RAILS_MASTER_KEY`
+  (production), `KAMAL_REGISTRY_PASSWORD` and `KAMAL_DEPLOY_SSH_KEY` (a
+  key the deploy user on the server accepts).
 
 ## Configuration
 
