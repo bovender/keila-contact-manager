@@ -20,14 +20,32 @@ module KeilaApi
       assert_equal 2, response["meta"]["page_count"]
     end
 
-    test "all_contacts follows every page" do
-      [ 0, 1 ].each do |page|
-        stub_request(:get, BASE)
-          .with(query: { "paginate[page]" => page.to_s, "paginate[page_size]" => Client::PAGE_SIZE.to_s })
-          .to_return(status: 200, body: { data: [ { "id" => "nc_#{page}" } ], meta: { page_count: 2 } }.to_json)
-      end
+    def stub_list(page_size, ids, count: ids.size)
+      stub_request(:get, BASE)
+        .with(query: { "paginate[page]" => "0", "paginate[page_size]" => page_size.to_s })
+        .to_return(status: 200, body: { data: ids.map { |id| { "id" => id } }, meta: { page_count: 1, count: count } }.to_json)
+    end
+
+    test "all_contacts fetches every contact as a single page" do
+      stub_list(Client::PAGE_SIZE, %w[nc_0 nc_1])
 
       assert_equal %w[nc_0 nc_1], @client.all_contacts.map { |c| c["id"] }
+    end
+
+    test "all_contacts asks for a bigger page when there are more contacts than fit" do
+      count = Client::PAGE_SIZE + 1
+      stub_list(Client::PAGE_SIZE, %w[nc_0], count: count)
+      stub_list(count + 100, %w[nc_0 nc_1], count: 2)
+
+      assert_equal %w[nc_0 nc_1], @client.all_contacts.map { |c| c["id"] }
+    end
+
+    test "all_contacts refuses a list with repeats or gaps" do
+      stub_list(Client::PAGE_SIZE, %w[nc_0 nc_1 nc_1])
+      assert_raises(InconsistentListError) { @client.all_contacts }
+
+      stub_list(Client::PAGE_SIZE, %w[nc_0], count: 2)
+      assert_raises(InconsistentListError) { @client.all_contacts }
     end
 
     test "create_contact posts the contact under a data key and returns it" do

@@ -14,6 +14,10 @@ module KeilaApi
   # Keila couldn't be reached at all.
   class ConnectionError < Error; end
 
+  # Keila's contact list had repeats or gaps (see Client#all_contacts), so
+  # it can't be trusted to tell which contacts exist.
+  class InconsistentListError < Error; end
+
   # No Keila instance URL (KEILA_URL) or no API key for this project.
   class NotConfiguredError < Error; end
 
