@@ -33,7 +33,7 @@ class NameCleanup
     result = Result.new(keys, Hash.new(0), Hash.new(0), [], [], 0)
 
     ActiveRecord::Base.transaction do
-      @project.contacts.order(:email).find_each do |contact|
+      @project.contacts.find_each do |contact|
         NAME_FIELDS.each { |field| clean(contact, field, keys[field], result) }
         next unless contact.changed?
 

@@ -14,7 +14,7 @@ namespace :contacts do
       puts "  Custom fields #{apply ? 'removed' : 'to remove'}: #{result.removed_keys.map(&:inspect).join(', ').presence || '(none)'}"
       if result.conflicts.any?
         puts "  #{result.conflicts.size} conflict(s), left alone:"
-        result.conflicts.each do |conflict|
+        result.conflicts.sort_by { |conflict| conflict.contact.email }.each do |conflict|
           custom = conflict.custom.map { |key, value| "#{key.inspect}: #{value.inspect}" }.join(", ")
           puts "    #{conflict.contact.email} #{conflict.field}: #{conflict.built_in.inspect} vs. #{custom}"
         end
