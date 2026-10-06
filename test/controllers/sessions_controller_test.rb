@@ -8,6 +8,14 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "the footer shows the running version, signed in or not" do
+    with_env("KAMAL_VERSION" => "abcdef0123456789", "GIT_COMMIT_TIMESTAMP" => "2026-10-06T09:15:00+02:00") do
+      get new_session_path
+      assert_select "footer a[href$='/commit/abcdef0123456789']", "abcdef0"
+      assert_select "footer", /2026-10-06 09:15/
+    end
+  end
+
   test "create with valid credentials" do
     post session_path, params: { email_address: @user.email_address, password: "password" }
 
@@ -54,6 +62,25 @@ class SessionsControllerOidcTest < ActionDispatch::IntegrationTest
       get new_session_path
       assert_match "Sign in with Example SSO", response.body
       assert_no_match "Enter your password", response.body
+    end
+  end
+
+  test "the sign-in page goes straight on to the identity provider" do
+    with_oidc do
+      get new_session_path
+      assert_select "form[action='/auth/oidc'][data-controller='auto-submit']"
+    end
+  end
+
+  test "the sign-in page waits when there's a message to read" do
+    mock_oidc(groups: [ "other" ])
+    with_oidc(required_group: "kcm") do
+      sign_in_via_sso
+      follow_redirect!
+
+      assert_select "#alert", /isn't allowed/
+      assert_select "form[action='/auth/oidc']"
+      assert_select "[data-controller='auto-submit']", count: 0
     end
   end
 
@@ -137,6 +164,20 @@ class SessionsControllerOidcTest < ActionDispatch::IntegrationTest
       query = Rack::Utils.parse_query(location.query)
       assert_equal "id-token", query["id_token_hint"]
       assert_equal "http://www.example.com/session/new", query["post_logout_redirect_uri"]
+    end
+  end
+
+  test "signing out says so when the identity provider's session can't be ended" do
+    stub_request(:get, "https://sso.example.com/realms/test/.well-known/openid-configuration").to_return(status: 404)
+    mock_oidc
+    with_oidc do
+      sign_in_via_sso
+      delete session_path
+
+      assert_redirected_to new_session_path
+      follow_redirect!
+      assert_select "#notice", /still signed in with Example SSO/
+      assert_select "[data-controller='auto-submit']", count: 0
     end
   end
 

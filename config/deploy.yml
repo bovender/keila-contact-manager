@@ -18,6 +18,11 @@ env:
   clear:
     # Run the Solid Queue supervisor inside of Puma for single-server deployments.
     SOLID_QUEUE_IN_PUMA: true
+    # For the version in the page footer (see AppVersion). Kamal evaluates
+    # this file as ERB on the machine running `kamal deploy`, which has the
+    # git history the image lacks. Quoted, because YAML would otherwise
+    # parse it as a timestamp, which Kamal refuses as an env value.
+    GIT_COMMIT_TIMESTAMP: "<%= `git log -1 --format=%cI`.strip %>"
 
 # The SQLite databases live in storage/, which must survive redeploys.
 volumes:

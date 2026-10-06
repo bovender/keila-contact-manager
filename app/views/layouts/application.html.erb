@@ -40,5 +40,17 @@
     <main class="container mx-auto mt-10 px-5 flex">
       <%= yield %>
     </main>
+
+    <%# On every page, signed in or not: right after a deploy, it shows
+        whether the new version is live. %>
+    <footer class="container mx-auto mt-16 px-5 pb-8 text-center text-sm text-gray-500">
+      <% if AppVersion.commit_sha %>
+        Version
+        <%= link_to AppVersion.short_sha, AppVersion.commit_url, class: "underline hover:no-underline", target: "_blank", rel: "noopener" %>
+        <% if AppVersion.commit_time %>
+          · <%= AppVersion.commit_time.strftime("%Y-%m-%d %H:%M") %>
+        <% end %>
+      <% end %>
+    </footer>
   </body>
 </html>

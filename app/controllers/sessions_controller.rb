@@ -42,6 +42,11 @@ class SessionsController < ApplicationController
 
     if oidc_enabled? && (logout_url = oidc_logout_url(id_token))
       redirect_to logout_url, allow_other_host: true, status: :see_other
+    elsif oidc_enabled?
+      # The notice also keeps the sign-in page from going straight back to
+      # the identity provider, whose session is still active.
+      redirect_to new_session_path, status: :see_other,
+        notice: "Signed out here, but you're still signed in with #{oidc_config[:provider_name]}."
     else
       redirect_to new_session_path, status: :see_other
     end

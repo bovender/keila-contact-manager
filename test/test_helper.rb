@@ -40,5 +40,13 @@ module ActiveSupport
     ensure
       Rails.configuration.x.keila_url = original
     end
+
+    def with_env(vars)
+      originals = vars.keys.index_with { |key| ENV[key] }
+      vars.each { |key, value| ENV[key] = value }
+      yield
+    ensure
+      originals.each { |key, value| ENV[key] = value }
+    end
   end
 end
