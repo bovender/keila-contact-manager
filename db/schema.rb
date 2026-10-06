@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_06_190000) do
   create_table "contact_deletions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email"
@@ -53,6 +53,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
     t.index ["keila_project_id"], name: "index_custom_field_definitions_on_keila_project_id"
   end
 
+  create_table "duplicate_dismissals", force: :cascade do |t|
+    t.integer "contact_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "other_contact_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["contact_id", "other_contact_id"], name: "index_duplicate_dismissals_on_contact_id_and_other_contact_id", unique: true
+    t.index ["other_contact_id"], name: "index_duplicate_dismissals_on_other_contact_id"
+  end
+
   create_table "keila_projects", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "keila_api_key"
@@ -86,6 +95,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_120000) do
   add_foreign_key "contact_deletions", "keila_projects"
   add_foreign_key "contacts", "keila_projects"
   add_foreign_key "custom_field_definitions", "keila_projects"
+  add_foreign_key "duplicate_dismissals", "contacts", column: "other_contact_id", on_delete: :cascade
+  add_foreign_key "duplicate_dismissals", "contacts", on_delete: :cascade
   add_foreign_key "sessions", "users"
   add_foreign_key "users", "keila_projects", column: "current_keila_project_id"
 end

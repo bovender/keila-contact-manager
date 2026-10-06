@@ -24,6 +24,7 @@ class ContactsController < ApplicationController
 
   def show
     @custom_field_definitions = current_project.custom_field_definitions
+    @possible_duplicates = DuplicateFinder.for_contact(@contact)
   end
 
   def new
@@ -60,7 +61,7 @@ class ContactsController < ApplicationController
 
   def destroy
     @contact.destroy
-    redirect_to contacts_path, notice: "Contact deleted."
+    redirect_to (params[:return_to] == "duplicates" ? duplicates_path : contacts_path), notice: "Deleted #{@contact.email}."
   end
 
   def import
@@ -112,6 +113,16 @@ class ContactsController < ApplicationController
   def bulk_destroy
     count = target_contacts.destroy_all.size
     redirect_to contacts_path(q: params[:q], tag: params[:current_tag]), notice: "Deleted #{count} contact(s)."
+  end
+
+  def bulk_merge
+    ids = Array(params[:contact_ids]).compact_blank
+    if ActiveModel::Type::Boolean.new.cast(params[:select_all_matching]) || ids.size != 2
+      redirect_to contacts_path(q: params[:q], tag: params[:current_tag]), alert: "Select exactly two contacts to merge."
+      return
+    end
+
+    redirect_to new_merge_path(contact_ids: ids)
   end
 
   private

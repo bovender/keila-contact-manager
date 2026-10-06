@@ -27,8 +27,16 @@ Rails.application.routes.draw do
       get :export
       post :bulk_update
       post :bulk_destroy
+      post :bulk_merge
     end
   end
+
+  # Suspected duplicates of the active project, and merging two contacts
+  # into one (from that list, or any two picked in the contacts table).
+  resources :duplicates, only: :index do
+    post :dismiss, on: :collection
+  end
+  resource :merge, only: %i[new create]
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.

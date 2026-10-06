@@ -36,6 +36,10 @@ to KCM -- tags can be filtered and toggled easily.
 - Custom fields are schema-free: new ones show up automatically on import,
   or you can add them by hand, with no migration required
 - Bulk tag, untag, and delete
+- Finds likely duplicates — exact ones can't exist (emails are unique per
+  project, ignoring case), so it looks for near misses: a typo in the
+  domain or before the @, or the same name under two addresses — and
+  merges two contacts into the one you choose to lead, or deletes one copy
 - Two-way sync with Keila's REST API: the contacts page tells you when a
   sync is due (changes here, in Keila, or both) and syncs with one click;
   conflicting edits are shown side by side for you to decide

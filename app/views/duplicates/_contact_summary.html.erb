@@ -1,0 +1,16 @@
+<div class="min-w-0">
+  <%= link_to contact.email, contact_path(contact), class: "font-medium text-gray-900 hover:underline break-all" %>
+  <div class="text-sm text-gray-600"><%= contact.full_name.presence || tag.span("no name", class: "italic text-gray-400") %></div>
+  <div class="text-xs text-gray-500 mt-1">
+    <%= contact.status.presence || "no status" %>
+    · <%= contact.keila_id? ? "in Keila" : "not in Keila yet" %>
+    · added <%= contact.created_at.to_date.iso8601 %>
+  </div>
+  <% if contact.tags.any? %>
+    <div class="flex flex-wrap gap-1 mt-1">
+      <% contact.tags.each do |t| %>
+        <span class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700"><%= t %></span>
+      <% end %>
+    </div>
+  <% end %>
+</div>

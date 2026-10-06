@@ -1,0 +1,66 @@
+<% content_for :title, "Merge contacts" %>
+
+<% leading = @merge.leading %>
+<% other = @merge.other %>
+<% ids = [ leading.id, other.id ] %>
+<% back_path = @return_to ? duplicates_path : contacts_path %>
+
+<div class="w-full max-w-4xl">
+  <h1 class="font-bold text-3xl text-gray-900 mb-2">Merge contacts</h1>
+  <p class="text-gray-600 mb-6">
+    The leading record keeps its email address and every value it has; the
+    other one only fills in what the leading record leaves blank, and adds its
+    tags. An &ldquo;unsubscribed&rdquo; status on either record is kept.
+    The other record is then deleted<%= " (in Keila too, at the next sync)" if other.keila_id? %>.
+  </p>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+    <div class="border-2 border-blue-500 rounded-lg p-4">
+      <div class="text-xs font-semibold uppercase tracking-wide text-blue-600 mb-2">Leading record</div>
+      <%= render "duplicates/contact_summary", contact: leading %>
+    </div>
+    <div class="border border-gray-200 rounded-lg p-4">
+      <div class="flex items-center justify-between gap-2 mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Will be merged and deleted</span>
+        <%= link_to "Make this the leading record", new_merge_path(contact_ids: ids, leading_id: other.id, return_to: @return_to),
+              class: "text-xs text-blue-600 hover:underline" %>
+      </div>
+      <%= render "duplicates/contact_summary", contact: other %>
+    </div>
+  </div>
+
+  <h2 class="text-lg font-semibold text-gray-900 mb-1">Result</h2>
+  <p class="text-sm text-gray-500 mb-3">Highlighted values come from the record being merged in.</p>
+  <div class="overflow-x-auto border border-gray-200 rounded-lg mb-8">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-3 py-2 text-left font-semibold text-gray-700">Field</th>
+          <th class="px-3 py-2 text-left font-semibold text-gray-700">Leading</th>
+          <th class="px-3 py-2 text-left font-semibold text-gray-700">Merged in</th>
+          <th class="px-3 py-2 text-left font-semibold text-gray-700">Result</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <% @merge.rows.each do |row| %>
+          <tr>
+            <td class="px-3 py-2 text-gray-500"><%= row.label %></td>
+            <td class="px-3 py-2 text-gray-700"><%= sync_value(row.leading) %></td>
+            <td class="px-3 py-2 text-gray-700"><%= sync_value(row.other) %></td>
+            <td class="px-3 py-2 <%= row.source == :leading ? 'text-gray-900' : 'bg-amber-50 text-amber-900 font-medium' %>"><%= sync_value(row.result) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex flex-wrap gap-2">
+    <%= button_to "Merge into #{leading.email}", merge_path, params: { contact_ids: ids, leading_id: leading.id, return_to: @return_to }.compact,
+          form: { data: { turbo_confirm: "Merge #{other.email} into #{leading.email} and delete #{other.email}?" } },
+          class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer" %>
+    <%= button_to "Just delete #{other.email}", contact_path(other, return_to: @return_to), method: :delete,
+          form: { data: { turbo_confirm: "Delete #{other.email} without merging anything into #{leading.email}?" } },
+          class: "rounded-md px-3.5 py-2.5 border border-red-300 text-red-600 hover:bg-red-50 font-medium cursor-pointer" %>
+    <%= link_to "Cancel", back_path, class: "rounded-md px-3.5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium" %>
+  </div>
+</div>

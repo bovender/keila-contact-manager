@@ -1,0 +1,45 @@
+<% content_for :title, "Duplicates" %>
+
+<div class="w-full max-w-4xl">
+  <h1 class="font-bold text-3xl text-gray-900 mb-2">Possible duplicates <span class="text-gray-400 font-normal text-xl">(<%= @pairs.size %>)</span></h1>
+  <p class="text-gray-600 mb-6">
+    Keila and this app both allow each email address only once per project
+    (ignoring case), so these are near misses: addresses that differ by a
+    typo, or one person under two addresses. Merge a pair into the record you
+    choose to lead, delete one copy, or mark the pair as not duplicates.
+    Contacts deleted here (by merging, too) are deleted in Keila by the next sync.
+    To merge two contacts not listed here, select both on the
+    <%= link_to "contacts page", contacts_path, class: "underline" %> and choose
+    &ldquo;Merge selected&rdquo;.
+  </p>
+
+  <% if @pairs.empty? %>
+    <p class="text-green-700">No possible duplicates found.</p>
+  <% else %>
+    <div class="border border-gray-200 rounded-lg divide-y divide-gray-200">
+      <% @pairs.each do |pair| %>
+        <div class="p-4">
+          <p class="text-xs font-medium text-amber-700 mb-2">
+            <%= pair.reasons.map { |reason| DuplicateFinder::REASONS[reason] }.join(" · ") %>
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+            <% [ pair.contact, pair.other ].each do |contact| %>
+              <div class="flex flex-col gap-2">
+                <%= render "duplicates/contact_summary", contact: contact %>
+                <%= button_to "Delete this copy", contact_path(contact, return_to: "duplicates"), method: :delete,
+                      form: { data: { turbo_confirm: "Delete #{contact.email}#{' (here and, at the next sync, in Keila)' if contact.keila_id?}?" } },
+                      class: "text-sm rounded-md px-2.5 py-1 border border-red-300 text-red-600 hover:bg-red-50 cursor-pointer" %>
+              </div>
+            <% end %>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <%= link_to "Review and merge…", new_merge_path(contact_ids: pair.contact_ids, return_to: "duplicates"),
+                  class: "text-sm rounded-md px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium" %>
+            <%= button_to "Not duplicates", dismiss_duplicates_path, params: { contact_ids: pair.contact_ids },
+                  class: "text-sm rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 text-gray-700 cursor-pointer" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

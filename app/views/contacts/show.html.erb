@@ -54,6 +54,22 @@
     <% end %>
   </dl>
 
+  <% if @possible_duplicates.any? %>
+    <div class="border border-amber-200 bg-amber-50 rounded-lg p-4 mb-8">
+      <h2 class="text-sm font-semibold text-amber-800 mb-2">Possible duplicates</h2>
+      <ul class="space-y-2">
+        <% @possible_duplicates.each do |pair| %>
+          <% twin = pair.contact == @contact ? pair.other : pair.contact %>
+          <li class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <%= link_to twin.email, contact_path(twin), class: "font-medium text-amber-900 underline" %>
+            <span class="text-amber-700"><%= pair.reasons.map { |reason| DuplicateFinder::REASONS[reason] }.join(" · ") %></span>
+            <%= link_to "Review and merge…", new_merge_path(contact_ids: [ @contact.id, twin.id ]), class: "text-blue-600 hover:underline" %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
   <% if extra_keys.any? %>
     <div class="border border-amber-200 bg-amber-50 rounded-lg p-4">
       <h2 class="text-sm font-semibold text-amber-800 mb-2">Unregistered fields</h2>

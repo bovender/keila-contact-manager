@@ -56,6 +56,8 @@
       </datalist>
       <%= button_tag "Add tag", type: "submit", name: "operation", value: "tag", class: "rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 cursor-pointer" %>
       <%= button_tag "Remove tag", type: "submit", name: "operation", value: "untag", class: "rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 cursor-pointer" %>
+      <button type="submit" formaction="<%= bulk_merge_contacts_path %>"
+              class="rounded-md px-3 py-1.5 border border-gray-300 hover:bg-gray-50 cursor-pointer">Merge selected</button>
       <button type="submit" formaction="<%= bulk_destroy_contacts_path %>" data-turbo-confirm="Delete all selected contacts?"
               data-bulk-select-target="deleteButton"
               class="rounded-md px-3 py-1.5 border border-red-300 text-red-600 hover:bg-red-50 cursor-pointer">Delete selected</button>
