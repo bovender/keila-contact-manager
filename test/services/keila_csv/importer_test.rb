@@ -59,6 +59,18 @@ module KeilaCsv
       assert_equal [ "Company" ], result.custom_fields
     end
 
+    test "recognizes standard fields however their headers are spelled" do
+      result = import(<<~CSV)
+        E-mail,First name,lastName,External ID
+        erin@example.com,Erin,Evans,ext-9
+      CSV
+
+      contact = Contact.find_by!(email: "erin@example.com")
+      assert_equal [ "Erin", "Evans", "ext-9" ], [ contact.first_name, contact.last_name, contact.external_id ]
+      assert_empty contact.data
+      assert_empty result.custom_fields
+    end
+
     test "re-matches an existing contact by its embedded uuid even if the email changed" do
       contact = contacts(:one)
       original_id = contact.id

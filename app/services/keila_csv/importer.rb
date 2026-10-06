@@ -26,9 +26,10 @@ module KeilaCsv
   # fields, "whatever the source currently says" is the more useful
   # default for tags.
   #
-  # Standard field headers (Email, First_name, ...) are matched
-  # case-insensitively, but custom field headers keep their original casing
-  # so they round-trip with Keila's own Data JSON keys unchanged.
+  # Standard field headers (Email, First_name, ...) are matched ignoring
+  # case, spaces, underscores and hyphens ("First name" is First_name, see
+  # KeilaCsv.standard_field), but custom field headers keep their original
+  # casing so they round-trip with Keila's own Data JSON keys unchanged.
   class Importer
     def self.import(io_or_path, project:)
       new(io_or_path, project).import
@@ -42,8 +43,8 @@ module KeilaCsv
     def import
       table = CSV.read(@io_or_path, headers: true, encoding: "bom|utf-8")
       raw_headers = table.headers.compact
-      header_lookup = raw_headers.each_with_object({}) { |h, acc| acc[h.downcase] = h }
-      custom_headers = raw_headers.reject { |h| KeilaCsv::DOWNCASED_FIELDS.include?(h.downcase) || h.downcase == "tags" }
+      header_lookup = raw_headers.each_with_object({}) { |h, acc| acc[KeilaCsv.standard_field(h) || h.downcase] = h }
+      custom_headers = raw_headers.reject { |h| KeilaCsv.standard_field(h) }
       result = KeilaCsv::ImportResult.new
 
       table.each_with_index do |row, index|
