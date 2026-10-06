@@ -28,6 +28,9 @@ module KeilaContactManager
     # project in that instance, identified by its own API key.
     config.x.keila_url = ENV["KEILA_URL"].presence
 
+    # Nothing here stores images, so there's no image_processing gem either.
+    config.active_storage.variant_processor = :disabled
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
