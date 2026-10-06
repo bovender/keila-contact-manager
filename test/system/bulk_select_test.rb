@@ -11,6 +11,8 @@ class BulkSelectTest < ApplicationSystemTestCase
     total_vip = project.contacts.tagged_with("vip").count
 
     visit contacts_path(tag: "vip")
+    # The page reloads once to fit the window (viewport_pagination_controller.js).
+    assert_current_path(/per_page=/)
     assert_no_text "contacts on this page are selected"
     assert_selector "[data-bulk-select-ready='true']"
 

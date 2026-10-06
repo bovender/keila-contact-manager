@@ -1,5 +1,10 @@
 class ContactsController < ApplicationController
-  PER_PAGE = 50
+  # How many contacts a page shows until the browser has measured how many
+  # fit its window (see viewport_pagination_controller.js), and the bounds
+  # for what it may ask for.
+  DEFAULT_PER_PAGE = 50
+  MIN_PER_PAGE = 10
+  MAX_PER_PAGE = 200
 
   before_action :require_current_project
   before_action :set_contact, only: %i[show edit update destroy]
@@ -10,10 +15,11 @@ class ContactsController < ApplicationController
     @tag = params[:tag]
 
     scope = current_project.contacts.search(@q).tagged_with(@tag).order(:email)
+    @per_page = per_page
     @page = [ params[:page].to_i, 1 ].max
     @total_count = scope.count
-    @contacts = scope.offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
-    @total_pages = (@total_count / PER_PAGE.to_f).ceil
+    @contacts = scope.offset((@page - 1) * @per_page).limit(@per_page)
+    @total_pages = (@total_count / @per_page.to_f).ceil
   end
 
   def show
@@ -109,6 +115,15 @@ class ContactsController < ApplicationController
   end
 
   private
+
+  # Remembered in the session rather than for the user, because each
+  # device has a window of its own size.
+  def per_page
+    if params[:per_page].present?
+      session[:contacts_per_page] = params[:per_page].to_i.clamp(MIN_PER_PAGE, MAX_PER_PAGE)
+    end
+    session[:contacts_per_page] || DEFAULT_PER_PAGE
+  end
 
   # All of the current project's contacts matching the index filter (when
   # the "select all N matching this filter" banner was used) or just the

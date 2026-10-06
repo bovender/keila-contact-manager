@@ -1,6 +1,9 @@
 <% content_for :title, "Contacts" %>
 
-<div class="w-full">
+<div class="w-full" data-controller="viewport-pagination"
+     data-viewport-pagination-per-page-value="<%= @per_page %>"
+     data-viewport-pagination-min-per-page-value="<%= ContactsController::MIN_PER_PAGE %>"
+     data-viewport-pagination-max-per-page-value="<%= ContactsController::MAX_PER_PAGE %>">
   <%= render "shared/flash" %>
 
   <div class="flex items-center justify-between mb-6">
@@ -82,7 +85,7 @@
             <th class="px-3 py-2 text-left font-semibold text-gray-700">Tags</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody class="divide-y divide-gray-100" data-viewport-pagination-target="tbody">
           <% @contacts.each do |contact| %>
             <tr class="hover:bg-gray-50 cursor-pointer"
                 data-controller="row-click" data-action="click->row-click#visit"
@@ -96,10 +99,14 @@
               <td class="px-3 py-2 text-gray-700"><%= contact.last_name %></td>
               <td class="px-3 py-2 text-gray-700"><%= contact.status %></td>
               <td class="px-3 py-2">
-                <% contact.tags.each do |t| %>
-                  <%= link_to t, contacts_path(q: @q, tag: t),
-                        class: "inline-block px-2 py-0.5 mr-1 mb-1 rounded-full text-xs #{@tag == t ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" %>
-                <% end %>
+                <%# No taller than a line of text, so rows with tags are as
+                    high as the others (see viewport_pagination_controller.js). %>
+                <div class="flex flex-wrap gap-1">
+                  <% contact.tags.each do |t| %>
+                    <%= link_to t, contacts_path(q: @q, tag: t),
+                          class: "px-2 py-0.5 rounded-full text-xs #{@tag == t ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" %>
+                  <% end %>
+                </div>
               </td>
             </tr>
           <% end %>
@@ -109,11 +116,23 @@
   <% end %>
 
   <% if @total_pages > 1 %>
-    <div class="flex gap-2 mt-4 text-sm">
-      <% (1..@total_pages).each do |page_number| %>
-        <%= link_to page_number, contacts_path(q: @q, tag: @tag, page: page_number),
-              class: "px-3 py-1 rounded-md border #{page_number == @page ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}" %>
+    <% page_link_class = "px-3 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50" %>
+    <nav class="flex flex-wrap items-center gap-2 mt-4 text-sm" aria-label="Pages" data-viewport-pagination-target="pager">
+      <% if @page > 1 %>
+        <%= link_to "‹ Previous", contacts_path(q: @q, tag: @tag, page: @page - 1), class: page_link_class %>
       <% end %>
-    </div>
+      <% pagination_window(@page, @total_pages).each do |page_number| %>
+        <% if page_number.nil? %>
+          <span class="px-1 text-gray-400">&hellip;</span>
+        <% elsif page_number == @page %>
+          <span class="px-3 py-1 rounded-md border bg-blue-600 text-white border-blue-600" aria-current="page"><%= page_number %></span>
+        <% else %>
+          <%= link_to page_number, contacts_path(q: @q, tag: @tag, page: page_number), class: page_link_class %>
+        <% end %>
+      <% end %>
+      <% if @page < @total_pages %>
+        <%= link_to "Next ›", contacts_path(q: @q, tag: @tag, page: @page + 1), class: page_link_class %>
+      <% end %>
+    </nav>
   <% end %>
 </div>

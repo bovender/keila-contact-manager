@@ -35,6 +35,20 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match other.email, response.body
   end
 
+  test "index remembers the page size it's asked for, within bounds" do
+    project = users(:one).current_keila_project
+    30.times { |i| Contact.create!(email: "many#{i}@example.com", keila_project: project) }
+
+    get contacts_path, params: { per_page: 12 }
+    assert_select "tbody tr", 12
+
+    get contacts_path, params: { page: 2 }
+    assert_select "tbody tr", 12
+
+    get contacts_path, params: { per_page: 1 }
+    assert_select "tbody tr", ContactsController::MIN_PER_PAGE
+  end
+
   test "show 404s for a contact belonging to a different project" do
     other = Contact.create!(email: "other@example.com", keila_project: keila_projects(:beta))
 
