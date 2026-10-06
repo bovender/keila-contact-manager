@@ -1,7 +1,18 @@
-<% if (alert = flash[:alert]) %>
-  <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block" id="alert"><%= alert %></p>
-<% end %>
-
-<% if (notice = flash[:notice]) %>
-  <p class="py-2 px-3 bg-green-50 mb-5 text-green-500 font-medium rounded-lg inline-block" id="notice"><%= notice %></p>
+<%# Rendered once by the layout. Messages float over the page instead of
+    pushing it down; notices go away by themselves, alerts stay until
+    dismissed (see flash_controller.js). %>
+<% styles = { notice: "bg-green-50 text-green-800 border-green-200", alert: "bg-red-50 text-red-800 border-red-200" } %>
+<% if styles.keys.any? { |type| flash[type].present? } %>
+  <div class="fixed top-16 inset-x-4 sm:left-auto z-50 flex flex-col items-end gap-2 pointer-events-none">
+    <% styles.each do |type, colors| %>
+      <% next if flash[type].blank? %>
+      <%= tag.div id: type, role: (type == :alert ? "alert" : "status"),
+            class: "pointer-events-auto max-w-md flex items-start gap-3 rounded-lg border shadow-lg px-4 py-3 text-sm font-medium #{colors}",
+            data: { controller: "flash", flash_timeout_value: (8000 if type == :notice) } do %>
+        <span><%= flash[type] %></span>
+        <button type="button" data-action="flash#dismiss" aria-label="Dismiss"
+                class="ml-auto -mr-1 leading-none text-lg opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
+      <% end %>
+    <% end %>
+  </div>
 <% end %>

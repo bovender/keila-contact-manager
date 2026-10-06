@@ -22,9 +22,8 @@ export default class extends Controller {
     // Turbo shows cached snapshots as previews before the real page.
     if (document.documentElement.hasAttribute("data-turbo-preview")) return
     if (!this.hasTbodyTarget || this.rows.length === 0) return
-    // A flash message takes room only this once, and reloading would
-    // lose it.
-    if (this.element.querySelector("#notice, #alert")) return
+    // Reloading would lose a flash message; the next visit corrects.
+    if (document.querySelector("#notice, #alert")) return
 
     // Web fonts and lazily loaded frames above the table (like the sync
     // banner) can still change where and how tall the rows are.

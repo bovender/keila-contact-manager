@@ -4,8 +4,6 @@
      data-viewport-pagination-per-page-value="<%= @per_page %>"
      data-viewport-pagination-min-per-page-value="<%= ContactsController::MIN_PER_PAGE %>"
      data-viewport-pagination-max-per-page-value="<%= ContactsController::MAX_PER_PAGE %>">
-  <%= render "shared/flash" %>
-
   <div class="flex items-center justify-between mb-6">
     <h1 class="font-bold text-3xl text-gray-900">Contacts <span class="text-gray-400 font-normal text-xl">(<%= @total_count %>)</span></h1>
     <div class="flex gap-2">
