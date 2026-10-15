@@ -169,15 +169,17 @@ class ContactTest < ActiveSupport::TestCase
     assert_equal Time.zone.local(2026, 9, 1, 12), contact.reload.status_changed_at
   end
 
-  test "long_unsubscribed finds contacts unsubscribed for the retention period or longer" do
+  test "due_for_deletion finds contacts inactive for the retention period or longer" do
     old = contacts(:one)
     recent = contacts(:two)
-    old.update!(status: "unsubscribed", status_changed_at: (Contact::UNSUBSCRIBED_RETENTION + 1.day).ago)
+    old.update!(status: "unsubscribed", status_changed_at: (Contact::INACTIVE_RETENTION + 1.day).ago)
     recent.update!(status: "unsubscribed")
+    bounced = keila_projects(:alpha).contacts.create!(email: "dave@example.com", status: "unreachable", status_changed_at: 1.year.ago)
     keila_projects(:alpha).contacts.create!(email: "carol@example.com", status: "active", status_changed_at: 1.year.ago)
 
-    assert_equal [ old ], keila_projects(:alpha).contacts.long_unsubscribed.to_a
-    assert old.long_unsubscribed?
-    assert_not recent.long_unsubscribed?
+    assert_equal [ old, bounced ].sort_by(&:id), keila_projects(:alpha).contacts.due_for_deletion.order(:id).to_a
+    assert old.due_for_deletion?
+    assert bounced.due_for_deletion?
+    assert_not recent.due_for_deletion?
   end
 end

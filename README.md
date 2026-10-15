@@ -40,9 +40,9 @@ to KCM -- tags can be filtered and toggled easily.
   project, ignoring case), so it looks for near misses: a typo in the
   domain or before the @, or the same name under two addresses — and
   merges two contacts into the one you choose to lead, or deletes one copy
-- Points out contacts unsubscribed for 30 days or longer, so you can
-  delete them (here and, by the next sync, in Keila) rather than keep
-  personal data you no longer need
+- Points out contacts unsubscribed or unreachable (bounced) for 30 days
+  or longer, so you can delete them (here and, by the next sync, in
+  Keila) rather than keep personal data you no longer need
 - Two-way sync with Keila's REST API: the contacts page tells you when a
   sync is due (changes here, in Keila, or both) and syncs with one click;
   conflicting edits are shown side by side for you to decide

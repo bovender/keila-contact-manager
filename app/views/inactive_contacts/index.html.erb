@@ -1,20 +1,20 @@
-<% content_for :title, "Unsubscribed" %>
+<% content_for :title, "Inactive contacts" %>
 
 <div class="w-full max-w-4xl">
-  <h1 class="font-bold text-3xl text-gray-900 mb-2">Unsubscribed contacts <span class="text-gray-400 font-normal text-xl">(<%= @contacts.size %>)</span></h1>
+  <h1 class="font-bold text-3xl text-gray-900 mb-2">Inactive contacts <span class="text-gray-400 font-normal text-xl">(<%= @contacts.size %>)</span></h1>
   <p class="text-gray-600 mb-6">
-    Contacts who unsubscribed are no longer needed, so they shouldn't be
-    kept for long. Those unsubscribed for
-    <%= Contact::UNSUBSCRIBED_RETENTION.inspect %> or longer are selected
+    Contacts who unsubscribed, or whose address bounced (unreachable), get
+    no more mail, so they shouldn't be kept for long. Those inactive for
+    <%= Contact::INACTIVE_RETENTION.inspect %> or longer are selected
     below. Contacts deleted here are deleted in Keila by the next sync
     (which shows them for review first). If someone signs up again later,
     Keila simply adds them as a new contact.
   </p>
 
   <% if @contacts.empty? %>
-    <p class="text-green-700">No unsubscribed contacts.</p>
+    <p class="text-green-700">No unsubscribed or unreachable contacts.</p>
   <% else %>
-    <%= form_with url: purge_unsubscribed_contacts_path, method: :post do %>
+    <%= form_with url: purge_inactive_contacts_path, method: :post do %>
       <div class="overflow-x-auto border border-gray-200 rounded-lg mb-4">
         <table class="min-w-full divide-y divide-gray-200 text-sm">
           <thead class="bg-gray-50">
@@ -22,20 +22,22 @@
               <th class="px-3 py-2 w-8"></th>
               <th class="px-3 py-2 text-left font-semibold text-gray-700">Email</th>
               <th class="px-3 py-2 text-left font-semibold text-gray-700">Name</th>
-              <th class="px-3 py-2 text-left font-semibold text-gray-700">Unsubscribed since</th>
+              <th class="px-3 py-2 text-left font-semibold text-gray-700">Status</th>
+              <th class="px-3 py-2 text-left font-semibold text-gray-700">Since</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <% @contacts.each do |contact| %>
-              <tr class="<%= 'bg-amber-50' if contact.long_unsubscribed? %>">
+              <tr class="<%= 'bg-amber-50' if contact.due_for_deletion? %>">
                 <td class="px-3 py-2">
-                  <%= check_box_tag "contact_ids[]", contact.id, contact.long_unsubscribed?, id: "contact_#{contact.id}" %>
+                  <%= check_box_tag "contact_ids[]", contact.id, contact.due_for_deletion?, id: "contact_#{contact.id}" %>
                 </td>
                 <td class="px-3 py-2 text-gray-900">
                   <label for="contact_<%= contact.id %>"><%= contact.email %></label>
                   <%= link_to "Show", contact_path(contact), class: "ml-2 text-xs text-gray-500 underline" %>
                 </td>
                 <td class="px-3 py-2 text-gray-700"><%= contact.full_name %></td>
+                <td class="px-3 py-2 text-gray-700"><%= contact.status %></td>
                 <td class="px-3 py-2 text-gray-700">
                   <% if contact.status_changed_at %>
                     <%= contact.status_changed_at.to_date.iso8601 %>

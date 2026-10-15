@@ -20,7 +20,7 @@ class ContactsController < ApplicationController
     @total_count = scope.count
     @contacts = scope.offset((@page - 1) * @per_page).limit(@per_page)
     @total_pages = (@total_count / @per_page.to_f).ceil
-    @long_unsubscribed_count = current_project.contacts.long_unsubscribed.count
+    @due_for_deletion_count = current_project.contacts.due_for_deletion.count
   end
 
   def show

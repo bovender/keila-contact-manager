@@ -21,9 +21,12 @@ class Contact < ApplicationRecord
   # The only statuses Keila accepts.
   STATUSES = %w[active unsubscribed unreachable].freeze
 
-  # How long an unsubscribed contact may be kept before the app suggests
+  # Statuses of contacts Keila no longer sends to.
+  INACTIVE_STATUSES = %w[unsubscribed unreachable].freeze
+
+  # How long an inactive contact may be kept before the app suggests
   # deleting it (data minimisation under the GDPR).
-  UNSUBSCRIBED_RETENTION = 30.days
+  INACTIVE_RETENTION = 30.days
 
   belongs_to :keila_project
 
@@ -55,10 +58,10 @@ class Contact < ApplicationRecord
     )
   }
 
-  scope :unsubscribed, -> { where(status: "unsubscribed") }
+  scope :inactive, -> { where(status: INACTIVE_STATUSES) }
 
-  # Unsubscribed for UNSUBSCRIBED_RETENTION or longer: due for deletion.
-  scope :long_unsubscribed, -> { unsubscribed.where(status_changed_at: ..UNSUBSCRIBED_RETENTION.ago) }
+  # Inactive for INACTIVE_RETENTION or longer: due for deletion.
+  scope :due_for_deletion, -> { inactive.where(status_changed_at: ..INACTIVE_RETENTION.ago) }
 
   scope :tagged_with, ->(tag) {
     return all if tag.blank?
@@ -88,8 +91,8 @@ class Contact < ApplicationRecord
     [ first_name, last_name ].reject(&:blank?).join(" ")
   end
 
-  def long_unsubscribed?
-    status == "unsubscribed" && status_changed_at.present? && status_changed_at <= UNSUBSCRIBED_RETENTION.ago
+  def due_for_deletion?
+    INACTIVE_STATUSES.include?(status) && status_changed_at.present? && status_changed_at <= INACTIVE_RETENTION.ago
   end
 
   def tags

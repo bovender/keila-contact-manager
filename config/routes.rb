@@ -38,8 +38,8 @@ Rails.application.routes.draw do
   end
   resource :merge, only: %i[new create]
 
-  # Unsubscribed contacts, to delete those kept for too long.
-  resources :unsubscribed_contacts, path: "unsubscribed", only: :index do
+  # Unsubscribed and unreachable contacts, to delete those kept for too long.
+  resources :inactive_contacts, path: "inactive", only: :index do
     post :purge, on: :collection
   end
 
