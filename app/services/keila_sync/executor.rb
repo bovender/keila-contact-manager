@@ -163,10 +163,23 @@ module KeilaSync
       @new_data_keys.merge(state["data"].keys - contact.data.keys)
 
       contact.assign_attributes(state.slice(*Contact::SYNCED_ATTRIBUTES))
+      # Keila doesn't say when the status changed, only when the contact
+      # last did -- not before its status, and closer than the time of
+      # this sync.
+      if contact.status_changed? && (changed_at = keila_time(remote["updated_at"]))
+        contact.status_changed_at = changed_at
+      end
       contact.data = state["data"]
       contact.keila_id = remote["id"]
       contact.sync_snapshot = state
       contact.save!
+    end
+
+    def keila_time(value)
+      time = Time.zone.parse(value.to_s)
+      [ time, Time.current ].min if time
+    rescue ArgumentError
+      nil
     end
   end
 end

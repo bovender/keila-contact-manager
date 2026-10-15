@@ -41,6 +41,7 @@ class ContactMerge
       leading.last_name = result_of(:last_name)
       leading.external_id = result_of(:external_id)
       leading.status = status_row.result
+      leading.status_changed_at = other.status_changed_at if status_row.source == :other && other.status_changed_at
       leading.data = merged_data
       leading.save!
     end

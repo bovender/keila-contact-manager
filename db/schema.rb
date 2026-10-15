@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_06_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_15_120000) do
   create_table "contact_deletions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email"
@@ -32,6 +32,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_190000) do
     t.integer "keila_project_id", null: false
     t.string "last_name"
     t.string "status"
+    t.datetime "status_changed_at"
     t.json "sync_snapshot"
     t.datetime "updated_at", null: false
     t.string "uuid", null: false

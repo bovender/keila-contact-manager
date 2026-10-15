@@ -26,13 +26,14 @@ class ContactMergeTest < ActiveSupport::TestCase
   end
 
   test "an unsubscribed status on the other contact is kept" do
-    @other.update!(status: "unsubscribed")
+    @other.update!(status: "unsubscribed", status_changed_at: Time.utc(2026, 9, 1))
 
     merge = ContactMerge.new(@leading, @other)
     assert_equal [ "unsubscribed", :other ], merge.rows.find { |row| row.label == "Status" }.then { |row| [ row.result, row.source ] }
 
     merge.apply!
     assert_equal "unsubscribed", @leading.reload.status
+    assert_equal Time.utc(2026, 9, 1), @leading.status_changed_at
   end
 
   test "rows say where each value comes from" do

@@ -312,4 +312,26 @@ class KeilaSyncTest < ActiveSupport::TestCase
     assert_nil other.reload.keila_id
     assert @alice.reload.keila_id.present?
   end
+
+  # -- status changes ---------------------------------------------------
+
+  test "an unsubscribe pulled from Keila dates from Keila's last change" do
+    synced!
+    @keila.edit(@alice.keila_id, status: "unsubscribed", updated_at: "2026-09-01T08:00:00Z")
+
+    sync!
+
+    assert_equal "unsubscribed", @alice.reload.status
+    assert_equal Time.utc(2026, 9, 1, 8), @alice.status_changed_at
+  end
+
+  test "a pulled status change without a usable date in Keila dates from the sync" do
+    synced!
+    @keila.edit(@alice.keila_id, status: "unsubscribed", updated_at: "2999-01-01T00:00:00Z")
+
+    freeze_time do
+      sync!
+      assert_equal Time.current, @alice.reload.status_changed_at
+    end
+  end
 end

@@ -21,12 +21,19 @@ class Contact < ApplicationRecord
   # The only statuses Keila accepts.
   STATUSES = %w[active unsubscribed unreachable].freeze
 
+  # How long an unsubscribed contact may be kept before the app suggests
+  # deleting it (data minimisation under the GDPR).
+  UNSUBSCRIBED_RETENTION = 30.days
+
   belongs_to :keila_project
 
   normalizes :status, with: ->(status) { status.strip.downcase.presence }
 
   before_validation { self.email = email.to_s.strip.downcase }
   before_validation(on: :create) { self.uuid ||= SecureRandom.uuid }
+  # Unless whoever changed the status knows better when it changed (see
+  # KeilaSync::Executor#store).
+  before_save(if: :will_save_change_to_status?) { self.status_changed_at = Time.current unless status_changed_at_changed? }
   after_destroy :record_deletion, if: :keila_id?
 
   # Scoped to keila_project, not global: the same email can legitimately
@@ -47,6 +54,11 @@ class Contact < ApplicationRecord
       p: pattern
     )
   }
+
+  scope :unsubscribed, -> { where(status: "unsubscribed") }
+
+  # Unsubscribed for UNSUBSCRIBED_RETENTION or longer: due for deletion.
+  scope :long_unsubscribed, -> { unsubscribed.where(status_changed_at: ..UNSUBSCRIBED_RETENTION.ago) }
 
   scope :tagged_with, ->(tag) {
     return all if tag.blank?
@@ -74,6 +86,10 @@ class Contact < ApplicationRecord
 
   def full_name
     [ first_name, last_name ].reject(&:blank?).join(" ")
+  end
+
+  def long_unsubscribed?
+    status == "unsubscribed" && status_changed_at.present? && status_changed_at <= UNSUBSCRIBED_RETENTION.ago
   end
 
   def tags

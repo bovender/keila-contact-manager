@@ -28,7 +28,10 @@
     </div>
     <div class="px-4 py-3 grid grid-cols-3 gap-4">
       <dt class="text-sm font-medium text-gray-500">Status</dt>
-      <dd class="col-span-2 text-sm text-gray-900"><%= @contact.status.presence || "—" %></dd>
+      <dd class="col-span-2 text-sm text-gray-900"><%= @contact.status.presence || "—" %>
+        <% if @contact.status.present? && @contact.status_changed_at %>
+          <span class="text-gray-500">since <%= @contact.status_changed_at.to_date.iso8601 %></span>
+        <% end %></dd>
     </div>
     <div class="px-4 py-3 grid grid-cols-3 gap-4">
       <dt class="text-sm font-medium text-gray-500">External ID</dt>
