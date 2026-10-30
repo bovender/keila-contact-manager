@@ -110,7 +110,10 @@ jobs:
   deploy:
     needs: [ scan_ruby, scan_js, lint, test ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.KAMAL_DEPLOY_CONFIG != ''
-    runs-on: ubuntu-latest
+    # A runner registered to this repository only, with the Docker socket
+    # for buildx and Kamal; test jobs get no socket (ansible repo,
+    # roles/server_docker, server_docker_gitea_deploy_runners).
+    runs-on: deploy
     env:
       DESTINATION: ${{ vars.KAMAL_DESTINATION }}
 
