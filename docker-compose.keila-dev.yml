@@ -14,13 +14,13 @@
 #   # KEILA_URL=http://localhost:4445 and add a project with that key.
 services:
   keila-db:
-    image: postgres:15
+    image: postgres:18
     environment:
       POSTGRES_USER: keila
       POSTGRES_PASSWORD: keila
       POSTGRES_DB: keila
     volumes:
-      - keila_dev_db:/var/lib/postgresql/data
+      - keila_dev_db18:/var/lib/postgresql
 
   keila:
     image: pentacent/keila:latest
@@ -40,4 +40,4 @@ services:
       MAILER_SMTP_FROM_EMAIL: noreply@example.com
 
 volumes:
-  keila_dev_db:
+  keila_dev_db18:
