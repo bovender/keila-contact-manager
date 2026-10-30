@@ -2,5 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>daniel/renovate"
+  ],
+  "packageRules": [
+    {
+      "description": "No auto-merge here: only daniel may push or merge to main (branch protection), because this repository deploys to the server with root-equivalent access. Renovate's PRs wait for a review.",
+      "matchUpdateTypes": ["patch"],
+      "automerge": false
+    },
+    {
+      "description": "Workflow files are protected on every branch, so Renovate couldn't push action updates anyway; the actions are pinned to commit SHAs and updated by hand.",
+      "matchManagers": ["github-actions"],
+      "enabled": false
+    }
   ]
 }
