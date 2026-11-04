@@ -20,10 +20,10 @@ module KeilaApi
       assert_equal 2, response["meta"]["page_count"]
     end
 
-    def stub_list(page_size, ids, count: ids.size)
+    def stub_list(page_size, ids, count: ids.size, page: 0, page_count: 1)
       stub_request(:get, BASE)
-        .with(query: { "paginate[page]" => "0", "paginate[page_size]" => page_size.to_s })
-        .to_return(status: 200, body: { data: ids.map { |id| { "id" => id } }, meta: { page_count: 1, count: count } }.to_json)
+        .with(query: { "paginate[page]" => page.to_s, "paginate[page_size]" => page_size.to_s })
+        .to_return(status: 200, body: { data: ids.map { |id| { "id" => id } }, meta: { page_count: page_count, count: count } }.to_json)
     end
 
     test "all_contacts fetches every contact as a single page" do
@@ -32,12 +32,22 @@ module KeilaApi
       assert_equal %w[nc_0 nc_1], @client.all_contacts.map { |c| c["id"] }
     end
 
-    test "all_contacts asks for a bigger page when there are more contacts than fit" do
-      count = Client::PAGE_SIZE + 1
-      stub_list(Client::PAGE_SIZE, %w[nc_0], count: count)
-      stub_list(count + 100, %w[nc_0 nc_1], count: 2)
+    test "all_contacts asks for at most the page size Keila accepts" do
+      assert_operator Client::PAGE_SIZE, :<=, 1_000
+    end
 
-      assert_equal %w[nc_0 nc_1], @client.all_contacts.map { |c| c["id"] }
+    test "all_contacts fetches further pages when there are more contacts than fit" do
+      stub_list(Client::PAGE_SIZE, %w[nc_0 nc_1], count: 3, page_count: 2)
+      stub_list(Client::PAGE_SIZE, %w[nc_2], count: 3, page: 1, page_count: 2)
+
+      assert_equal %w[nc_0 nc_1 nc_2], @client.all_contacts.map { |c| c["id"] }
+    end
+
+    test "all_contacts refuses pages that overlap" do
+      stub_list(Client::PAGE_SIZE, %w[nc_0 nc_1], count: 3, page_count: 2)
+      stub_list(Client::PAGE_SIZE, %w[nc_1], count: 3, page: 1, page_count: 2)
+
+      assert_raises(InconsistentListError) { @client.all_contacts }
     end
 
     test "all_contacts refuses a list with repeats or gaps" do

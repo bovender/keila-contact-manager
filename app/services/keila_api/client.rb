@@ -15,9 +15,10 @@ module KeilaApi
     # second -- e.g. by one CSV import -- can differ between two requests.
     # Fetched page by page, such contacts can then show up on two pages and
     # be missing from both, which a sync would take for contacts deleted in
-    # Keila. So all_contacts asks for everything as a single page (Keila
-    # doesn't limit the page size), and rejects a list with repeats.
-    PAGE_SIZE = 10_000
+    # Keila. So all_contacts asks for pages as big as Keila allows (1,000
+    # since Keila 0.40.2, which rejects bigger ones), which is everything at
+    # once for our projects, and rejects a list with repeats or gaps.
+    PAGE_SIZE = 1_000
 
     def initialize(base_url:, api_key:)
       @base_url = base_url.to_s.chomp("/")
@@ -32,13 +33,12 @@ module KeilaApi
     # Every contact in the project, as an array of contact hashes.
     def all_contacts
       response = list_contacts(page: 0, page_size: PAGE_SIZE)
-      if response.dig("meta", "count").to_i > PAGE_SIZE
-        # Room for contacts signing up in the meantime.
-        response = list_contacts(page: 0, page_size: response.dig("meta", "count").to_i + 100)
-      end
-
       contacts = response["data"] || []
       count = response.dig("meta", "count").to_i
+      (1...response.dig("meta", "page_count").to_i).each do |page|
+        contacts += list_contacts(page: page, page_size: PAGE_SIZE)["data"] || []
+      end
+
       repeated = contacts.map { |contact| contact["id"] }.tally.count { |_, n| n > 1 }
       if repeated.positive? || contacts.size < count
         raise InconsistentListError, "Keila returned an inconsistent contact list (#{contacts.size} contacts, " \
